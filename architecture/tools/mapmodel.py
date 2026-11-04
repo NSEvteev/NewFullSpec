@@ -73,6 +73,12 @@ STORE_PREFIX = {
 SETTINGS_GROUPS = ("Настройки", "Другие настройки", "Зашито в коде", "Фоновая работа", "Ограничители")
 
 
+def path_order(p: Path) -> list[str]:
+    """Порядок файлов один на любой системе: по частям пути, без регистра. sorted() по Path на Windows не различает
+    регистр, а на Linux различает: README.md встал бы раньше methods.md, и вывод инструментов зависел бы от системы."""
+    return [part.casefold() for part in p.parts]
+
+
 def lane_rank(part: str) -> int:
     """Место участника процесса по виду: human, schedule, сервисы, external:…, redis, folder:… (STANDARD, раздел 6)."""
     if part in ("human", "schedule"):
@@ -321,7 +327,7 @@ def code_files(root: Path) -> list[tuple[Path, str]]:
     if key not in _code_cache:
         out = []
         for d, dirs, names in os.walk(root):
-            dirs[:] = sorted(x for x in dirs if x not in SKIP_CODE_DIRS)
+            dirs[:] = sorted((x for x in dirs if x not in SKIP_CODE_DIRS), key=str.casefold)
             for n in sorted(names):
                 if n.endswith(CODE_SUFFIXES):
                     p = Path(d) / n
@@ -439,13 +445,13 @@ class MapModel:
             if (folder / "own.md").is_file():
                 self._parse_steps(svc, folder / "own.md", "own")
             for p in (
-                sorted((folder / "processes").glob("*.md"))
+                sorted((folder / "processes").glob("*.md"), key=path_order)
                 if (folder / "processes").is_dir()
                 else []
             ):
                 self._parse_steps(svc, p, p.stem)
         for p in (
-            sorted((asis / "_processes").glob("*.md"))
+            sorted((asis / "_processes").glob("*.md"), key=path_order)
             if (asis / "_processes").is_dir()
             else []
         ):
@@ -1271,7 +1277,7 @@ def requirement_files(root: Path, spec: str) -> list[Path]:
         p = ((root / "TOBE" / t) if t.startswith(".") else (root.parent / t)).resolve()
         if p.name == "README.md":
             p = p.parent
-        out += sorted(p.rglob("*.md")) if p.is_dir() else [p] if p.is_file() else []
+        out += sorted(p.rglob("*.md"), key=path_order) if p.is_dir() else [p] if p.is_file() else []
     return list(dict.fromkeys(out))
 
 
@@ -1659,7 +1665,7 @@ class ChangeModel:
                 world_root / "ASIS",
                 ignore=shutil.ignore_patterns("*.html", "keys.js"),
             )
-            for p in sorted(self.dir.rglob("*.md")):
+            for p in sorted(self.dir.rglob("*.md"), key=path_order):
                 rel = p.relative_to(self.dir).as_posix()
                 if rel in ("README.md", "blocks.md") or rel.endswith("tasks.md") or rel.startswith(".draft/"):
                     continue  # .draft/ — черновик закрытия (map.py draft): копии без пометок, не правки
@@ -1690,7 +1696,7 @@ class ChangeModel:
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
         self._cover()
-        for p in sorted(self.dir.glob("*/tasks.md")):
+        for p in sorted(self.dir.glob("*/tasks.md"), key=path_order):
             self._tasks(p.parent.name, p)
         self._work()
         seen: dict[str, Block] = {}
@@ -1712,7 +1718,7 @@ class ChangeModel:
         reg_p, board_p = project / "services.yaml", project / "board.yaml"
         reg = yaml.safe_load(reg_p.read_text(encoding="utf-8-sig")) or {}
         new = {}
-        for d in sorted(p for p in self.dir.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))):
+        for d in sorted((p for p in self.dir.iterdir() if p.is_dir() and not p.name.startswith(("_", "."))), key=path_order):
             if d.name in reg:
                 continue
             node = self.board.get(d.name)

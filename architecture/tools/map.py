@@ -100,6 +100,7 @@ import anchors  # noqa: E402
 import backlog  # noqa: E402
 import tobe_checks  # noqa: E402
 from mapmodel import (  # noqa: E402
+    path_order,
     BLOCK_OPEN_RE,
     HEAD_RE,
     NEW_FILE_RE,
@@ -415,7 +416,7 @@ def code_relocate(root: Path) -> list[str]:
     lines = anchors.Lines(root.parent)
     remembered = anchors.load(root, "TOBE")
     moved, manual, files = [], [], 0
-    for p in sorted((root / "TOBE").rglob("*.md")):
+    for p in sorted((root / "TOBE").rglob("*.md"), key=path_order):
         rel = p.relative_to(root).as_posix()
         struct = read_md(p)
         raw = p.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n")
@@ -650,9 +651,9 @@ def mv(root: Path, old: str, new: str, yes: bool) -> list[str]:
     if not proc.is_file():
         raise Fail(f"процесса {old} нет")
     moves = [(proc, proc.with_name(f"{new}.md"))]
-    moves += [(p, p.with_name(f"{new}.md")) for p in sorted((root / "ASIS").glob(f"*/processes/{old}.md"))]
+    moves += [(p, p.with_name(f"{new}.md")) for p in sorted((root / "ASIS").glob(f"*/processes/{old}.md"), key=path_order)]
     edits = []
-    for p in sorted((root / "ASIS").rglob("*.md")):
+    for p in sorted((root / "ASIS").rglob("*.md"), key=path_order):
         text = p.read_text(encoding="utf-8")
         new_text = re.sub(rf"(\]\((?:[^)]*/)?){re.escape(old)}\.md", rf"\g<1>{new}.md", text)
         if new_text != text:
@@ -706,7 +707,7 @@ def mv_service(root: Path, old: str, new: str, also: list[str], yes: bool) -> li
     if busy:
         raise Fail(f"папка уже есть: {', '.join(b.relative_to(root).as_posix() for b in busy)}")
     edits, total = [], 0
-    for p in sorted(root.rglob("*")):
+    for p in sorted(root.rglob("*"), key=path_order):
         rel = p.relative_to(root).as_posix()
         if not p.is_file() or rel.startswith(("tools/", "_shared/")) or p.suffix not in (".md", ".yaml", ".yml", ".json", ".jsonl"):
             continue
@@ -834,7 +835,7 @@ def diff_check(root: Path) -> list[str]:
     fixed: list[str] = []
     manual: dict[str, tuple[list[tuple[str, str]], str]] = {}  # ссылка → ((md, раздел)…, что на месте строки в коде)
     verified: dict[str, set[str]] = {}  # папка .anchors.json → ключи, подтверждённые диффом
-    for p in sorted((root / "ASIS").rglob("*.md")):
+    for p in sorted((root / "ASIS").rglob("*.md"), key=path_order):
         rel = p.relative_to(root).as_posix()
         # «Как есть» — с коммита до изменения, а не HEAD: в HEAD уже лежат ссылки, которые изменение само перевело на
         # новый код (агент учёта блока), и сдвиг по диффу двинул бы их второй раз (однажды: −16 строк).
@@ -995,7 +996,7 @@ def block_done(root: Path, block: str, commits: str, summary: str, tests_src: st
     tasks = re.findall(r"\[\[(k-[a-z0-9-]+)\]\]", next((x for x in body if x.startswith("Задачи:")), ""))
     if not tasks:
         raise Fail(f"у блока {block} нет поля «Задачи:»")
-    files = {p: p.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n") for p in sorted(tobe.glob("*/tasks.md"))}
+    files = {p: p.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n") for p in sorted(tobe.glob("*/tasks.md"), key=path_order)}
     names = {}
     if tests_src:
         for raw in Path(tests_src).read_text(encoding="utf-8").splitlines():
@@ -1096,7 +1097,7 @@ def close(root: Path, rename: list[str], also: list[str], finish: bool) -> list[
 
 def clean_tobe(root: Path, yes: bool, done_args: list[str], done_ok: bool = False) -> list[str]:
     tobe_dir = root / "TOBE"
-    files = sorted(p for p in tobe_dir.rglob("*") if p.is_file() and p.name != ".gitkeep")
+    files = sorted((p for p in tobe_dir.rglob("*") if p.is_file() and p.name != ".gitkeep"), key=path_order)
     if not files:
         return ["«как будет» пусто — чистить нечего"]
     if yes and not done_ok:  # список показывается всегда, очищается — только при зелёном done.py

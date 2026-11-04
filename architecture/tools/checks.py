@@ -136,7 +136,7 @@ def _secrets_in_md(m: MapModel, r: Report, files: list[tuple[str, Path]]) -> Non
     rules = m.settings.get("secret_names") or {}
     values: dict[str, str] = {}
     for pattern in m.settings.get("secret_files") or []:
-        for p in sorted(m.repo.glob(pattern)):
+        for p in sorted(m.repo.glob(pattern), key=lambda x: [s.casefold() for s in x.parts]):
             if not p.is_file():
                 continue
             for line in p.read_text(encoding="utf-8", errors="replace").splitlines():
