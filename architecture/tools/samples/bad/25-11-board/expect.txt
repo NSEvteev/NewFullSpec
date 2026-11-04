@@ -1,0 +1,1 @@
+ошибка «как будет»: TOBE/board.yaml — в «Связях» web появился подраздел (c-web-get-order), а узла changes нет

@@ -1,0 +1,21 @@
+$ find.py 'orders: orders'
+# код выхода 0
+orders: orders — нашлось
+orders · orders · таблица — Заказы: кто заказал, сумма, статус и когда оплачен.
+md: architecture/ASIS/orders/storage.md:3
+  Заказы: кто заказал, сумма, статус и когда оплачен. Номер заказа — `id`: его даёт база при записи, он же уникальный ключ.
+  Единицы: `amount` — доллары
+  Код: src/orders/orders/models.py:10 :12
+факты (2026-10-17): строк 12 на 2026-10-17 · колонок 6
+кто пишет (1):
+  architecture/ASIS/orders/processes/order-create.md:12 · orders/order-create#row «Записывает заказ»
+кто читает (1):
+  architecture/ASIS/orders/methods.md:17 · GET /api/v1/orders/{order_id}
+колонки — кто пишет и кто читает (3):
+  orders.created_at — читают: orders/own#stale
+  orders.paid_at — пишут: orders/order-create#charge
+  orders.status — пишут: orders/own#stale, orders/order-create#charge; читают: orders/own#stale
+ссылки (3):
+  architecture/ASIS/orders/methods.md:17 · читает · GET /api/v1/orders/{order_id}
+  architecture/ASIS/orders/processes/order-create.md:12 · пишет · orders/order-create#row
+  architecture/ASIS/_processes/order-create.md:17 · стрелка «как» · order-create#row

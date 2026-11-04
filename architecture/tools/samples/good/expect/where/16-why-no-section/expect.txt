@@ -1,0 +1,2 @@
+$ where.py --why dev-block
+# код выхода 2

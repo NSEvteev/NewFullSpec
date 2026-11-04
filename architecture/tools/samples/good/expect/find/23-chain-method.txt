@@ -1,0 +1,7 @@
+$ find.py --chain 'orders: POST /api/v1/orders'
+# код выхода 0
+POST /api/v1/orders (orders · метод)
+└─ зовёт: web/order-create#submit «Отправляет заказ»
+   └─ обрабатывает: web: /orders — его зовёт human
+      └─ процесс: order-create «Создание заказа»
+ещё упоминается без вида: 1 — --all

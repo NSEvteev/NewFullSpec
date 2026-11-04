@@ -1,0 +1,16 @@
+# Состояние для where.py: ворота approved открыты.
+# Из чистой проверочной карты: remove — удалить (путь или шаблон), replace — замены (all: true — все
+# вхождения по шаблону file), add — новые файлы; пути — от good/. Вывод — expect.txt рядом.
+replace:
+- file: architecture/TOBE/**/*.md
+  old: · предложено
+  new: · решено владельцем
+  all: true
+- file: _backlog/promt-payment-retry.md
+  old: '(не согласовано) **Покупатель ждёт оплату на странице** {#d-poll} (2026-10-19)'
+  new: '**Покупатель ждёт оплату на странице** {#d-poll} (владелец, 2026-10-19: «Пусть страница ждёт оплату»)'
+- file: architecture/TOBE/README.md
+  old: 'Ветка: change/payment-retry'
+  new: 'Ветка: change/payment-retry
+
+    Описание утверждено: 2026-10-20 · 1a2b3c4 · «Да, делаем»'

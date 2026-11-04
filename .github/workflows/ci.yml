@@ -1,0 +1,109 @@
+# CI — Continuous Integration
+#
+# Запускается при каждом push в main и pull request.
+# Выполняет те же проверки, что и pre-commit хуки локально.
+# Это страховка: если кто-то обойдёт хуки (--no-verify), CI поймает.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Минимальные права: workflow читает код, но не может ничего писать
+permissions:
+  contents: read
+
+# Отменяет предыдущие запуски в той же ветке (экономит CI-минуты)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Проверки pre-commit: правила, скиллы, карта, секреты
+  pre-commit:
+    name: Pre-commit checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Cache pre-commit
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run pre-commit
+        run: |
+          pip install pre-commit -r architecture/tools/requirements.txt
+          pre-commit run --all-files
+
+  # Тесты инструментов карты и пакетов
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # Появились пакеты — ставить их зависимости здесь: pip install -e "src/<сервис>/[test]"
+      - name: Install test dependencies
+        run: pip install pytest -r architecture/tools/requirements.txt
+
+      - name: Run tests
+        run: make test
+
+  # Линтинг пакетов на Python
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install linters
+        run: pip install ruff
+
+      - name: Run linters
+        run: make lint
+
+  # Проверка зависимостей на уязвимости (только PR)
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Review dependencies
+        uses: actions/dependency-review-action@v4
+        continue-on-error: true

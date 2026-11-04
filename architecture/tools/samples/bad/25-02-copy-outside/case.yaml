@@ -1,0 +1,11 @@
+# Испорченная проверочная карта: 25.2 — копию правили мимо блока: поле вне правки разошлось с «как есть».
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/TOBE/orders/methods.md
+  old: 'Доступ: без входа
+
+    Код: `src/orders/orders/api.py:13`'
+  new: 'Доступ: всем
+
+    Код: `src/orders/orders/api.py:13`'

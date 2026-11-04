@@ -1,0 +1,7 @@
+$ find.py 'orders: p-no-retry' --tobe
+# код выхода 0
+orders: p-no-retry — уходит в «как будет» (c-ord-no-retry · решено владельцем)
+p-no-retry · orders · проблема — Оплата не повторяется: если шлюз не ответил, заказ остаётся «новым», хотя деньги могли списаться
+md «как есть»: architecture/ASIS/orders/problems.md:1
+правка: architecture/TOBE/orders/problems.md:1 · Почему: [[d-retry]]
+ссылок на него в «как будет» нет

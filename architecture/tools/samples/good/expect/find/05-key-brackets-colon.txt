@@ -1,0 +1,15 @@
+$ find.py '[[orders:MAX_ITEMS]]'
+# код выхода 0
+orders: MAX_ITEMS — нашлось
+MAX_ITEMS · orders · постоянная — Больше позиций в одном заказе шлюз не принимает — это его ограничение.
+md: architecture/ASIS/orders/settings.md:14
+  Больше позиций в одном заказе шлюз не принимает — это его ограничение.
+  Значение: 50 позиций
+  Код: src/orders/orders/service.py:8
+кто читает (1):
+  architecture/ASIS/orders/processes/order-create.md:6 · orders/order-create#accept «Принимает заказ»
+ссылки (4):
+  architecture/ASIS/orders/methods.md:5 · указатель · POST /api/v1/orders
+  architecture/ASIS/orders/processes/order-create.md:5 · указатель · orders/order-create#accept
+  architecture/ASIS/orders/processes/order-create.md:6 · читает · orders/order-create#accept
+  architecture/ASIS/orders/settings.md:38 · указатель · lim-items

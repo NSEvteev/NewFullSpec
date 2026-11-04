@@ -1,0 +1,7 @@
+# Состояние для where.py: старт закончен: обложка с решениями есть, «открыто» нет, правок и блоков нет — описание.
+# Из чистой проверочной карты: remove — удалить (путь или шаблон), replace — замены (all: true — все
+# вхождения по шаблону file), add — новые файлы; пути — от good/. Вывод — expect.txt рядом.
+remove:
+- architecture/TOBE/*/**/*.md
+- architecture/TOBE/blocks.md
+- architecture/TOBE/board.yaml

@@ -1,0 +1,1 @@
+ошибка: ASIS/orders/processes/order-create.md:9 — на шаг orders#discount не ведёт ни одна стрелка процесса order-create: поставь его в столбец «внутри» стрелки, которую он делает

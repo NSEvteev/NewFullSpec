@@ -1,0 +1,13 @@
+$ find.py --code src/orders/orders/api.py
+# код выхода 0
+src/orders/orders/api.py — 6 описаний (шагов 0), 11 ссылок
+architecture/ASIS/orders/README.md:3 · раздел Как устроен · :9
+architecture/ASIS/orders/README.md:10 · связь orders → external:payments · :19
+architecture/ASIS/orders/methods.md:1 · метод POST /api/v1/orders · :13 :17 :19
+architecture/ASIS/orders/methods.md:10 · метод GET /api/v1/orders/{order_id} · :23 :24 :26
+architecture/ASIS/orders/problems.md:1 · проблема p-no-retry «Оплата не повторяется: если шлюз не ответил, заказ остаётся «новым», хотя деньги могли списаться» · :19
+факты orders · обработчик метода GET /api/v1/health (раздела нет) · :31
+второй круг:
+  точка входа: orders: POST /api/v1/orders — её зовёт web
+  точка входа: orders: GET /api/v1/orders/{order_id} — её зовёт вручную
+  точка входа: orders: GET /api/v1/health — никто не зовёт

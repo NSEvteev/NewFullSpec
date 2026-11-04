@@ -1,0 +1,5 @@
+$ where.py --read dev-block
+# код выхода 0
+architecture/CLAUDE.md — «Как читать «как будет»»
+PROJECT.md — «Команды», «Живое окружение», «Снимки интерфейса»
+architecture/standards/code.md

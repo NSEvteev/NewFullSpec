@@ -1,0 +1,14 @@
+# Испорченная проверочная карта: №16 — «Связи» зовут метод, которого нет в справочнике вызываемого.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/web/README.md
+  old: |-
+    #### POST /api/v1/orders
+    Код: `src/web/src/api.ts:6`
+  new: |-
+    #### POST /api/v1/orders
+    Код: `src/web/src/api.ts:6`
+
+    #### PUT /api/v1/orders
+    Код: `src/web/src/api.ts:6`

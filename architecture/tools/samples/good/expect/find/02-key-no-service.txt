@@ -1,0 +1,22 @@
+$ find.py 'orders.status'
+# код выхода 0
+orders.status — нашлось у 1 сервиса
+
+orders.status · orders · колонка — Не просто «оплачен или нет».
+md: architecture/ASIS/orders/storage.md:16
+  Не просто «оплачен или нет». `new` — записан, деньги ещё не списаны; `paid` — списаны; `failed` — заказ брошен: к старту сервиса он был «новым» дольше часа.
+  Код: src/orders/orders/service.py:19 src/orders/orders/startup.py:7
+факты (2026-10-17): тип varchar · обязательна · умолчание new · описание в коде: Статус заказа · модель src/orders/orders/models.py:15
+кто пишет (2):
+  architecture/ASIS/orders/own.md:6 · orders/own#stale «Закрывает брошенные заказы»
+  architecture/ASIS/orders/processes/order-create.md:18 · orders/order-create#charge «Списывает деньги»
+кто читает (1):
+  architecture/ASIS/orders/own.md:6 · orders/own#stale «Закрывает брошенные заказы»
+через таблицу orders — пишут и читают её целиком (2):
+  architecture/ASIS/orders/methods.md:17 · GET /api/v1/orders/{order_id}
+  architecture/ASIS/orders/processes/order-create.md:12 · orders/order-create#row «Записывает заказ»
+ссылки (4):
+  architecture/ASIS/orders/own.md:6 · читает · orders/own#stale
+  architecture/ASIS/orders/own.md:6 · пишет · orders/own#stale
+  architecture/ASIS/orders/processes/order-create.md:18 · пишет · orders/order-create#charge
+  architecture/ASIS/_processes/order-create.md:24 · стрелка «как» · order-create#paid

@@ -1,0 +1,15 @@
+$ find.py --chain 'orders: orders.status'
+# код выхода 0
+orders.status (orders · колонка)
+├─ пишет: orders/own#stale «Закрывает брошенные заказы»
+│  └─ своя работа сервиса
+├─ пишет: orders/order-create#charge «Списывает деньги»
+│  └─ обрабатывает: orders: POST /api/v1/orders — его зовёт web
+│     └─ процесс: order-create «Создание заказа»
+├─ читает: orders/own#stale «Закрывает брошенные заказы» ↺ выше
+└─ через таблицу orders: 2
+   ├─ читает: orders: GET /api/v1/orders/{order_id}
+   │  └─ вручную: человек командой `curl`, когда покупатель спрашивает о своём заказе
+   └─ пишет: orders/order-create#row «Записывает заказ»
+      └─ обрабатывает: orders: POST /api/v1/orders — его зовёт web ↺ выше
+ещё упоминается без вида: 0

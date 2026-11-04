@@ -1,0 +1,5 @@
+# Состояние для where.py: ошибка: в TOBE/ файлы есть, обложки нет.
+# Из чистой проверочной карты: remove — удалить (путь или шаблон), replace — замены (all: true — все
+# вхождения по шаблону file), add — новые файлы; пути — от good/. Вывод — expect.txt рядом.
+remove:
+- architecture/TOBE/README.md

@@ -1,0 +1,12 @@
+# Испорченная проверочная карта: №1 — у метода поле «Подпись:», которое бывает только у связи.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/methods.md
+  old: |-
+    Доступ: без входа
+    Код: `src/orders/orders/api.py:13`
+  new: |-
+    Доступ: без входа
+    Подпись: заказы
+    Код: `src/orders/orders/api.py:13`

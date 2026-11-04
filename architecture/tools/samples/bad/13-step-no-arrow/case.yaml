@@ -1,0 +1,16 @@
+# Испорченная проверочная карта: №13 — шаг среза, на который не ведёт ни одна стрелка.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/processes/order-create.md
+  old: |2
+
+    ## Записывает заказ {#row}
+  new: |2
+
+    ## Считает скидку {#discount}
+
+    Считает скидку постоянного покупателя.
+    Код: `src/orders/orders/service.py:14`
+
+    ## Записывает заказ {#row}

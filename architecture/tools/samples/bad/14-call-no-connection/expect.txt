@@ -1,0 +1,1 @@
+ошибка: ASIS/web/processes/order-create.md:6 — шаг зовёт [[orders: GET /api/v1/orders/{order_id}]], а в «Связях» README web нет «### → orders» / «#### GET /api/v1/orders/{order_id}»: допиши связь — как вызов себя ведёт

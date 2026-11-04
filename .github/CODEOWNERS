@@ -1,0 +1,10 @@
+# .github/CODEOWNERS
+#
+# Автоматическое назначение ревьюеров для Pull Request.
+# Владельца записывает /new-project: kit.py init --owner <логин GitHub>.
+
+# Глобальный владелец (для всех файлов)
+* @OWNER
+
+/.claude/                   @OWNER
+/.github/                   @OWNER

@@ -1,0 +1,5 @@
+$ find.py 'orders: PAYMENTS_RETRIES'
+# код выхода 1
+не нашлось: orders: PAYMENTS_RETRIES
+  есть в «как будет» (c-ord-retries): добавь --tobe
+  похожие: orders: PAYMENTS_URL · orders: _PAYMENTS_TIMEOUT · orders: PAYMENTS_API_KEY · orders: MAX_ITEMS

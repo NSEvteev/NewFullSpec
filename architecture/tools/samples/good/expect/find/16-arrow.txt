@@ -1,0 +1,9 @@
+$ find.py 'order-create#charge'
+# код выхода 0
+order-create#charge · стрелка 2.1 процесса order-create «Создание заказа»
+md: architecture/ASIS/_processes/order-create.md:23
+  orders → external:payments · внешний провайдер
+  что: списать сумму заказа
+  как: [[external:payments: POST /v1/charges]]
+  внутри: orders#charge
+  шаг orders/order-create#charge «Списывает деньги» — Просит шлюз списать сумму заказа и после ответа ставит заказу статус `paid` и время оплаты.

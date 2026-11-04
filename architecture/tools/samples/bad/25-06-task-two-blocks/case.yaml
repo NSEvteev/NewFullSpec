@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: 25.6 — задача сразу в двух блоках.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/TOBE/blocks.md
+  old: 'Задачи: [[k-web-poll]]'
+  new: 'Задачи: [[k-web-poll]] · [[k-ord-202]]'

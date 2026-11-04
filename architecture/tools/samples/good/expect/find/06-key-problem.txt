@@ -1,0 +1,16 @@
+$ find.py 'orders: p-no-retry'
+# код выхода 0
+orders: p-no-retry — нашлось
+p-no-retry · orders · проблема — Оплата не повторяется: если шлюз не ответил, заказ остаётся «новым», хотя деньги могли списаться
+md: architecture/ASIS/orders/problems.md:1
+  Шлюз может списать деньги и не успеть ответить за [[_PAYMENTS_TIMEOUT]]. Тогда сервис отвечает 502, заказ остаётся `new`, а на первом старте сервиса после того, как заказу исполнится час, закрывается как брошенный — хотя деньги уже списаны.
+  Важность: высокая
+  Проверено: по коду
+  Код: src/orders/orders/service.py:18 src/orders/orders/api.py:19 src/orders/orders/startup.py:7
+где проявляется (2):
+  architecture/ASIS/orders/own.md:7 · orders/own#stale «Закрывает брошенные заказы»
+  architecture/ASIS/orders/processes/order-create.md:19 · orders/order-create#charge «Списывает деньги»
+ссылки (3):
+  architecture/ASIS/orders/README.md:15 · указатель · orders → external:payments
+  architecture/ASIS/orders/own.md:7 · указатель · orders/own#stale
+  architecture/ASIS/orders/processes/order-create.md:19 · указатель · orders/order-create#charge

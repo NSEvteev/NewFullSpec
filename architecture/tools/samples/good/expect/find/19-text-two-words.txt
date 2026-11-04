@@ -1,0 +1,11 @@
+$ find.py --text шлюз ответ
+# код выхода 0
+«шлюз ответ»: 7 находок — 5 в именах и «что», 2 в текстах
+проблема · p-no-retry · orders · architecture/ASIS/orders/problems.md:1 — Оплата не повторяется: если шлюз не ответил, заказ остаётся «новым», хотя деньги могли списаться
+шаг · orders/order-create#row · orders · architecture/ASIS/orders/processes/order-create.md:9 — Записывает заказ со статусом `new` до оплаты: если шлюз не ответит, заказ не пропадёт.
+шаг · orders/order-create#charge · orders · architecture/ASIS/orders/processes/order-create.md:15 — Просит шлюз списать сумму заказа и после ответа ставит заказу статус `paid` и время оплаты.
+постоянная · _PAYMENTS_TIMEOUT · orders · architecture/ASIS/orders/settings.md:19 — Сколько ждать ответа шлюза; основание — замер 2026-10-01: шлюз отвечает за 2–4 с.
+постоянная · STALE · orders · architecture/ASIS/orders/settings.md:24 — Какой заказ работа при старте считает брошенным; час — с большим запасом больше любого ответа шлюза ([[_PAYMENTS_TIMEOUT]]).
+в текстах:
+  связь · orders → external:payments · orders · architecture/ASIS/orders/README.md:16 — Ключ шлюза есть только у orders: другие сервисы магазина к шлюзу не ходят.
+  метод · POST /api/v1/orders · orders · architecture/ASIS/orders/methods.md:6 — - 502 `PAYMENT_FAILED` — платёжный шлюз не ответил или отказал

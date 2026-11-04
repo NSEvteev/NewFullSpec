@@ -1,0 +1,11 @@
+$ find.py --code src/orders/orders/service.py:16-20
+# код выхода 0
+src/orders/orders/service.py:16-20 — 5 описаний (шагов 2), 8 ссылок
+architecture/ASIS/orders/problems.md:1 · проблема p-no-retry «Оплата не повторяется: если шлюз не ответил, заказ остаётся «новым», хотя деньги могли списаться» · :18
+architecture/ASIS/orders/processes/order-create.md:9 · шаг orders/order-create#row «Записывает заказ» · :16 :17
+architecture/ASIS/orders/processes/order-create.md:15 · шаг orders/order-create#charge «Списывает деньги» · :18 :19 :20
+architecture/ASIS/orders/storage.md:10 · колонка orders.paid_at · :20
+architecture/ASIS/orders/storage.md:16 · колонка orders.status · :19
+второй круг:
+  стрелки: order-create#row → #row · order-create#charge → #charge · order-create#paid → #charge
+  точка входа: orders: POST /api/v1/orders — её зовёт web

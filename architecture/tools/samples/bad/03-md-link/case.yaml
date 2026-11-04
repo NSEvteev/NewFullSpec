@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: №3 — ссылка md на якорь, которого нет.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/settings.md
+  old: (own.md#stale)
+  new: (own.md#stal)

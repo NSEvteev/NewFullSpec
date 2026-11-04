@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: №14 — шаг зовёт чужой метод, а в «Связях» своего README подраздела нет.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/web/processes/order-create.md
+  old: 'Справочник: обрабатывает [[/orders]] · читает [[cart]] · зовёт [[orders: POST /api/v1/orders]]'
+  new: 'Справочник: обрабатывает [[/orders]] · читает [[cart]] · зовёт [[orders: POST /api/v1/orders]] · зовёт [[orders: GET /api/v1/orders/{order_id}]]'

@@ -1,0 +1,4 @@
+$ find.py 'web: MAX_ITEMS'
+# код выхода 1
+не нашлось: web: MAX_ITEMS
+  такой ключ есть у: orders — 'orders: MAX_ITEMS'

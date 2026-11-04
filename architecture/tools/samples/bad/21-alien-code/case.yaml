@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: №21 — «Код:» раздела справочника ведёт в код другого сервиса.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/storage.md
+  old: 'Код: `src/orders/orders/models.py:10` · `src/orders/orders/models.py:12`'
+  new: 'Код: `src/orders/orders/models.py:10` · `src/orders/orders/models.py:12` · `src/web/src/api.ts:6`'

@@ -1,0 +1,55 @@
+{
+  "service": "orders",
+  "commit": "0000000",
+  "extracted_at": "2026-10-17T12:00:00",
+  "parts": ["fastapi-openapi", "pydantic-settings", "postgres", "alembic", "pytest"],
+  "fastapi-openapi": {
+    "url": "http://localhost:8010/openapi.json",
+    "live": true,
+    "methods": [
+      {"method": "POST", "path": "/api/v1/orders", "function": "post_order", "ref": "src/orders/orders/api.py:13",
+       "auth": false, "in_schema": true,
+       "request": [{"name": "customer", "type": "string", "required": true},
+                   {"name": "items", "type": "array", "required": true}],
+       "response": [{"name": "id", "type": "string"}, {"name": "amount", "type": "number"},
+                    {"name": "status", "type": "string"}, {"name": "paid_at", "type": "string"}]},
+      {"method": "GET", "path": "/api/v1/orders/{order_id}", "function": "read_order", "ref": "src/orders/orders/api.py:23",
+       "auth": false, "in_schema": true,
+       "request": [{"name": "order_id", "type": "string", "required": true}],
+       "response": [{"name": "id", "type": "string"}, {"name": "amount", "type": "number"},
+                    {"name": "status", "type": "string"}, {"name": "paid_at", "type": "string"}]},
+      {"method": "GET", "path": "/api/v1/health", "function": "health", "ref": "src/orders/orders/api.py:31",
+       "auth": false, "in_schema": true, "request": [], "response": [{"name": "status", "type": "string"}]}
+    ]
+  },
+  "pydantic-settings": {
+    "settings": [
+      {"name": "DATABASE_URL", "ref": "src/orders/orders/config.py:7", "default": null, "required": true, "secret": false,
+       "source": "окружение"},
+      {"name": "PAYMENTS_API_KEY", "ref": "src/orders/orders/config.py:9", "default": null, "required": true, "secret": true,
+       "source": "окружение"},
+      {"name": "PAYMENTS_URL", "ref": "src/orders/orders/config.py:8", "default": "https://pay.example.com", "required": false,
+       "secret": false, "source": "умолчание кода"}
+    ]
+  },
+  "postgres": {
+    "live": true,
+    "rows_at": "2026-10-17",
+    "tables": [
+      {"name": "orders", "ref": "src/orders/orders/models.py:10", "rows": 12, "uniques": [],
+       "columns": [
+         {"name": "id", "type": "uuid", "nullable": false, "default": "gen_random_uuid()", "comment": "", "ref": "src/orders/orders/models.py:12"},
+         {"name": "customer", "type": "varchar", "nullable": false, "default": "", "comment": "Кто заказал: почта покупателя", "ref": "src/orders/orders/models.py:13"},
+         {"name": "amount", "type": "numeric", "nullable": false, "default": "", "comment": "Сумма заказа", "ref": "src/orders/orders/models.py:14"},
+         {"name": "status", "type": "varchar", "nullable": false, "default": "new", "comment": "Статус заказа", "ref": "src/orders/orders/models.py:15"},
+         {"name": "paid_at", "type": "timestamptz", "nullable": true, "default": "", "comment": "Когда оплачен", "ref": "src/orders/orders/models.py:16"},
+         {"name": "created_at", "type": "timestamptz", "nullable": true, "default": "now()", "comment": "", "ref": "src/orders/orders/models.py:17"}
+       ]}
+    ]
+  },
+  "alembic": {"dir": "src/orders/migrations/versions", "versions": 1, "applied": "0001"},
+  "pytest": {
+    "collected": {"tests": 3},
+    "run": {"date": "2026-10-17", "results": {"tests": {"passed": 3, "failed": 0, "skipped": 0, "errors": 0}}}
+  }
+}

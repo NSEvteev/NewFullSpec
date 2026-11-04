@@ -1,0 +1,8 @@
+$ find.py k-ord-202 --tobe
+# код выхода 0
+k-ord-202 · задача «Ответ 202, если шлюз не ответил» · orders
+md: architecture/TOBE/orders/tasks.md:8
+  `src/orders/orders/api.py`: заказ со статусом `new` после списания — ответ 202 с тем же телом, что у 201; ответ 202 объявлен в схеме метода (`responses`), чтобы он был в фактах; 502 `PAYMENT_FAILED` — только на отказ шлюза.
+  Правки: [[c-ord-post-202]]
+  Тесты: [[t-ord-202]] · [[t-ord-refused]]
+  После: [[k-ord-retry]]

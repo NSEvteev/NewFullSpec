@@ -1,0 +1,8 @@
+# Испорченная проверочная карта: №8 — «Участники:» не в порядке дорожек: внешний провайдер раньше сервиса orders
+# (порядок — human, schedule, сервисы, external:…, redis, folder:…).
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/_processes/order-create.md
+  old: 'Участники: human · web · orders · external:payments'
+  new: 'Участники: human · web · external:payments · orders'

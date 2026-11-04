@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+# Из корня репо запускаются только тесты инструментов карты; у каждого пакета — свой pyproject.toml и свои тесты.
+testpaths = ["architecture/tools/tests"]

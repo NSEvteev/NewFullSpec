@@ -1,0 +1,9 @@
+$ find.py --text оплач
+# код выхода 0
+«оплач»: 6 находок — 6 в именах и «что», 0 в текстах
+метод · GET /api/v1/orders/{order_id} · orders · architecture/ASIS/orders/methods.md:10 — отдаёт заказ по номеру — сумму, статус и когда оплачен.
+срез · orders/order-create · orders · architecture/ASIS/orders/processes/order-create.md:1 — orders принимает заказ, записывает его со статусом «новый», списывает деньги через платёжный шлюз и отмечает заказ оплаченным.
+таблица · orders · orders · architecture/ASIS/orders/storage.md:3 — Заказы: кто заказал, сумма, статус и когда оплачен.
+колонка · orders.paid_at · orders · architecture/ASIS/orders/storage.md:10 — когда шлюз подтвердил списание; пусто — заказ не оплачен
+колонка · orders.status · orders · architecture/ASIS/orders/storage.md:16 — Не просто «оплачен или нет».
+процесс · order-create · — · architecture/ASIS/_processes/order-create.md:1 — Покупатель оформляет корзину на странице заказов; orders записывает заказ и списывает за него деньги через платёжный шлюз, покупатель видит заказ оплаченным.

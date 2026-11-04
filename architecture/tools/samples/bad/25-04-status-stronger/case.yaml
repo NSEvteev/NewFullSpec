@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: 25.4 — статус правки сильнее решения, на которое она ссылается.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/TOBE/web/storage.md
+  old: '::: новое c-web-pending · предложено'
+  new: '::: новое c-web-pending · решено по рекомендации'

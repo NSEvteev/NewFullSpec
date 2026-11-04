@@ -1,0 +1,4 @@
+$ where.py
+# код выхода 0
+Изменения нет
+Дальше: задачу выбирает решающий; список — python architecture/tools/backlog.py

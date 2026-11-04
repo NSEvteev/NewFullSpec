@@ -1,0 +1,14 @@
+$ find.py 'orders/order-create#charge'
+# код выхода 0
+orders/order-create#charge · шаг «Списывает деньги» — Просит шлюз списать сумму заказа и после ответа ставит заказу статус `paid` и время оплаты.
+процесс: order-create «Создание заказа»
+md: architecture/ASIS/orders/processes/order-create.md:15
+  Просит шлюз списать сумму заказа и после ответа ставит заказу статус `paid` и время оплаты.
+  Справочник: обрабатывает [[POST /api/v1/orders]] · зовёт [[external:payments: POST /v1/charges]] · пишет [[orders.status]] · пишет [[orders.paid_at]]
+  Проблемы: [[p-no-retry]]
+  Код: src/orders/orders/service.py:18 :19 :20
+стрелки: 2.1 charge orders → external:payments «списать сумму заказа» · 2.2 paid orders → orders «статус `paid` и время оплаты»
+обрабатывает: orders: POST /api/v1/orders — его зовёт web
+вызовы шага:
+  → external:payments: POST /v1/charges — Ожидание: ждёт ответа до [[_PAYMENTS_TIMEOUT]]; повторов нет · При отказе: метод отвечает 502 `PAYMENT_FAILED`; заказ остаётся «новым» — [[p-no-retry]]
+проблемы: p-no-retry «Оплата не повторяется: если шлюз не ответил, заказ остаётся «новым», хотя деньги могли списаться» (высокая)

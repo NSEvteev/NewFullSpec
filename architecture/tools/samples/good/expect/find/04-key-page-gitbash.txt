@@ -1,0 +1,17 @@
+$ find.py 'C:/Program Files/Git/orders'
+# код выхода 0
+/orders — нашлось у 1 сервиса
+
+/orders · web · страница — корзина покупателя, поле почты и кнопка «Оформить»; после оформления — номер заказа и его статус.
+md: architecture/ASIS/web/pages.md:1
+  Кому видна: всем, без входа
+  Код: src/web/src/router.tsx:6
+кто вызывает (1):
+  human — процесс order-create, стрелка 1.1 click
+как работает: web/order-create#submit · #show
+что трогает: зовёт orders: POST /api/v1/orders · пишет cart · читает cart
+ссылки (4):
+  architecture/ASIS/web/processes/order-create.md:6 · обрабатывает · web/order-create#submit
+  architecture/ASIS/web/processes/order-create.md:12 · обрабатывает · web/order-create#show
+  architecture/ASIS/_processes/order-create.md:15 · стрелка «как» · order-create#click
+  architecture/ASIS/_processes/order-create.md:25 · стрелка «как» · order-create#show

@@ -1,0 +1,75 @@
+# Claude Code
+tmpclaude-*
+.claude/settings.local.json
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+
+# Временные файлы ОС
+*.tmp
+*.temp
+*~
+.DS_Store
+Thumbs.db
+
+# Логи
+*.log
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Playwright
+.playwright-cli/
+
+# Виртуальное окружение
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Vite
+.vite/
+
+# Node.js
+node_modules/
+
+# Переменные окружения
+.env
+.env.local
+.env.*.local
+.env.test
+
+# Данные и секреты
+*.db
+*.sqlite
+*.sqlite3
+/data/
+/backups/
+credentials/
+secrets/
+api_keys/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Coverage
+htmlcov/
+.coverage
+coverage.xml
+
+# Build
+dist/
+build/
+*.egg-info/
+
+# Черновик закрытия изменения (map.py draft) — временный, в git не идёт
+**/TOBE/.draft/

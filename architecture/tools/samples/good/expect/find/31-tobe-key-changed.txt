@@ -1,0 +1,23 @@
+$ find.py 'orders: POST /api/v1/orders' --tobe
+# код выхода 0
+orders: POST /api/v1/orders — нашлось
+POST /api/v1/orders · orders · метод — создаёт заказ и сразу списывает за него деньги; если шлюз не ответил ни на одну попытку — отвечает 202 с тем же заказом, что при 201: номер, сумма, статус `new`; оплату такого заказа доводит своя работа orders. «Шлюз не ответил» — не ошибка: деньги могли списаться, поэтому заказ проверяют по статусу.
+как будет: c-ord-post-202 · меняется · решено владельцем
+md: architecture/TOBE/orders/methods.md:1
+  Группа: Заказы
+  Ошибки: 422 `TOO_MANY_ITEMS` — позиций больше [[MAX_ITEMS]] · 502 `PAYMENT_FAILED` — платёжный шлюз отказал; заказ `failed`
+  Доступ: без входа
+  Код: src/orders/orders/api.py:13 :17 :19
+факты (2026-10-17): обработчик src/orders/orders/api.py:13 · вход — нет · есть в живой схеме · запрос: customer (string, обяз.), items (array, обяз.) · ответ: id (string), amount (number), status (string), paid_at (string)
+кто вызывает (1):
+  web — связь «web → orders»; шаг web/order-create#submit
+как работает: orders/order-create#accept · #row · #charge
+что трогает: зовёт external:payments: POST /v1/charges · пишет orders, orders.status, orders.paid_at · читает MAX_ITEMS, PAYMENTS_RETRIES
+ссылки (7):
+  architecture/TOBE/web/README.md:18 · связь · web → orders
+  architecture/TOBE/web/processes/order-create.md:6 · зовёт · web/order-create#submit
+  architecture/TOBE/orders/processes/order-create.md:6 · обрабатывает · orders/order-create#accept
+  architecture/TOBE/orders/processes/order-create.md:12 · обрабатывает · orders/order-create#row
+  architecture/TOBE/orders/processes/order-create.md:19 · обрабатывает · orders/order-create#charge
+  architecture/TOBE/orders/settings.md:64 · указатель · lim-items
+  architecture/TOBE/_processes/order-create.md:19 · стрелка «как» · order-create#submit

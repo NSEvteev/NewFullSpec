@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: №4 — ключ [[…]], которого нет: опечатка в имени постоянной.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/methods.md
+  old: позиций больше [[MAX_ITEMS]]
+  new: позиций больше [[MAX_ITEM]]

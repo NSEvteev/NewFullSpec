@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: №23 — у настройки с секретным именем в фактах значение, а не маска.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/.facts.json
+  old: '{"name": "PAYMENTS_API_KEY", "ref": "src/orders/orders/config.py:9", "default": null,'
+  new: '{"name": "PAYMENTS_API_KEY", "ref": "src/orders/orders/config.py:9", "default": "sk_shop_7f3a9c21e4",'

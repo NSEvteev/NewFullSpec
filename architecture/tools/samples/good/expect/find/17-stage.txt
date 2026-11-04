@@ -1,0 +1,7 @@
+$ find.py 'order-create#pay'
+# код выхода 0
+order-create#pay · этап «Оплатить» процесса order-create «Создание заказа» — стрелок 3
+md: architecture/ASIS/_processes/order-create.md:19
+  2.1 charge · orders → external:payments · «списать сумму заказа» · [[external:payments: POST /v1/charges]] · внешний провайдер · orders#charge
+  2.2 paid · orders → orders · «статус `paid` и время оплаты» · [[orders: orders.status]] · [[orders: orders.paid_at]] · база · orders#charge
+  2.3 show · web → human · «номер заказа и статус» · [[web: /orders]] · человек · web#show

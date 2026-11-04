@@ -1,0 +1,14 @@
+.git
+.github
+.claude
+.venv
+__pycache__
+*.pyc
+node_modules
+architecture
+_backlog
+docs
+*.md
+# Сборка на компьютере — не в образ
+**/build/
+**/*.egg-info

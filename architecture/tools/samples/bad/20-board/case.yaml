@@ -1,0 +1,8 @@
+# Испорченная проверочная карта: №20 — узел доски не размещён в project/board.yaml.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/project/board.yaml
+  old: |2
+      web:                [1, 1]
+  new: ''

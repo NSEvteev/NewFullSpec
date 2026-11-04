@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: №8 — отправитель стрелки не стоит в «Участники:».
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/_processes/order-create.md
+  old: '| submit | web → orders |'
+  new: '| submit | shop → orders |'

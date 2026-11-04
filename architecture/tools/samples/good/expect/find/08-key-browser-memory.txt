@@ -1,0 +1,15 @@
+$ find.py 'web: cart'
+# код выхода 0
+web: cart — нашлось
+cart · web · память браузера — Корзина покупателя: позиции с ценой и количеством.
+md: architecture/ASIS/web/storage.md:1
+  Корзина покупателя: позиции с ценой и количеством. Очищается после оформленного заказа.
+  Где: постоянно (localStorage)
+  Код: src/web/src/pages/OrdersPage.tsx:10 :15
+кто пишет (1):
+  architecture/ASIS/web/processes/order-create.md:12 · web/order-create#show «Показывает итог»
+кто читает (1):
+  architecture/ASIS/web/processes/order-create.md:6 · web/order-create#submit «Отправляет заказ»
+ссылки (2):
+  architecture/ASIS/web/processes/order-create.md:6 · читает · web/order-create#submit
+  architecture/ASIS/web/processes/order-create.md:12 · пишет · web/order-create#show

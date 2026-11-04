@@ -1,0 +1,14 @@
+# Испорченная проверочная карта: №15 — подраздел «Связей», который не зовёт ни один шаг.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/web/README.md
+  old: |-
+    #### POST /api/v1/orders
+    Код: `src/web/src/api.ts:6`
+  new: |-
+    #### POST /api/v1/orders
+    Код: `src/web/src/api.ts:6`
+
+    #### GET /api/v1/orders/{order_id}
+    Код: `src/web/src/api.ts:6`

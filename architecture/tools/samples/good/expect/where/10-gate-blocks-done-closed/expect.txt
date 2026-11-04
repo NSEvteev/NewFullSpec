@@ -1,0 +1,3 @@
+$ where.py --gate blocks-done
+# код выхода 1
+ворота blocks-done: закрыты — не сделаны: b2

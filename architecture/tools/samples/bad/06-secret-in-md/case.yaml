@@ -1,0 +1,20 @@
+# Испорченная проверочная карта: №6 — значение секрета из .env попало в текст md.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+add:
+  config/.env: |
+    PAYMENTS_API_KEY=sk_shop_7f3a9c21e4
+replace:
+- file: architecture/project/settings.yaml
+  old: |2-
+
+    statuses:
+  new: |2-
+
+    secret_files:
+      - config/.env
+
+    statuses:
+- file: architecture/ASIS/orders/settings.md
+  old: Ключ магазина в платёжном шлюзе.
+  new: Ключ магазина в платёжном шлюзе, например sk_shop_7f3a9c21e4.

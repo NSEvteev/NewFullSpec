@@ -1,0 +1,130 @@
+# Pre-commit hooks configuration
+# https://pre-commit.com/
+#
+# Установка:
+#   make setup
+#   # или: pip install pre-commit && pre-commit install
+#
+# Ручной запуск:
+#   pre-commit run --all-files
+
+repos:
+  - repo: local
+    hooks:
+      # Валидация rules
+      - id: rules-validate
+        name: Validate rules format
+        entry: python .claude/.instructions/rules/.scripts/validate-rule.py
+        language: system
+        files: ^\.claude/rules/.*\.md$
+        pass_filenames: true
+        require_serial: true
+        stages: [pre-commit]
+
+      # Валидация скиллов
+      - id: skills-validate
+        name: Validate skills format
+        entry: python .claude/.instructions/skills/.scripts/validate-skill.py
+        language: system
+        files: ^\.claude/skills/.*/SKILL\.md$
+        pass_filenames: true
+        require_serial: true
+        stages: [pre-commit]
+
+
+      # Валидация PR template
+      - id: pr-template-validate
+        name: Validate PR template
+        entry: python .github/.instructions/.scripts/validate-pr-template.py
+        language: system
+        files: ^\.github/PULL_REQUEST_TEMPLATE\.md$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # Валидация CODEOWNERS
+      - id: codeowners-validate
+        name: Validate CODEOWNERS
+        entry: python .github/.instructions/.scripts/validate-codeowners.py
+        language: system
+        files: ^\.github/CODEOWNERS$
+        pass_filenames: false
+        stages: [pre-commit]
+
+      # Валидация GitHub Actions workflows
+      - id: actions-validate
+        name: Validate GitHub Actions workflows
+        entry: python .github/.instructions/.scripts/validate-action.py
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+        pass_filenames: true
+        require_serial: true
+        stages: [pre-commit]
+
+      # Валидация файлов безопасности GitHub
+      - id: security-validate
+        name: Validate GitHub security files
+        entry: python .github/.instructions/.scripts/validate-security.py
+        language: system
+        files: ^\.github/(dependabot\.yml|SECURITY\.md|workflows/codeql\.yml)$
+        pass_filenames: true
+        require_serial: true
+        stages: [pre-commit]
+
+      # Валидация имени ветки
+      - id: branch-validate
+        name: Validate branch name
+        entry: python .github/.instructions/.scripts/validate-branch-name.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # Проверка наличия обязательных файлов GitHub
+      - id: github-required
+        name: Check GitHub required files
+        entry: python .github/.instructions/.scripts/check-github-required.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+
+      # Валидация формата commit message
+      - id: validate-commit-msg
+        name: Validate commit message format
+        entry: python .github/.instructions/commits/.scripts/validate-commit-msg.py
+        language: system
+        always_run: true
+        stages: [commit-msg]
+
+  # Карта architecture: md из коммита — проверки файла и карты, свежесть зависящих страниц
+  - repo: local
+    hooks:
+      - id: map-check-staged
+        name: Map check (architecture, staged md)
+        entry: python architecture/tools/build.py --check --staged
+        language: system
+        files: ^architecture/.*\.md$
+        pass_filenames: false
+        stages: [pre-commit]
+
+  # Обнаружение секретов (gitleaks)
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: Detect secrets (gitleaks)
+        stages: [pre-commit]
+
+  # Линтинг Python (ruff)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.2
+    hooks:
+      - id: ruff
+        name: ruff check (Python lint)
+        args: [--fix]
+        files: ^(src|shared)/.*\.py$
+        stages: [pre-commit]
+      - id: ruff-format
+        name: ruff format (Python format)
+        files: ^(src|shared)/.*\.py$
+        stages: [pre-commit]

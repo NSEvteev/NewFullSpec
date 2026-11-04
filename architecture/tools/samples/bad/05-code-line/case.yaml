@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: №5 — «Код:» ведёт на строку, которой нет в файле.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/methods.md
+  old: 'Код: `src/orders/orders/api.py:24`'
+  new: 'Код: `src/orders/orders/api.py:999`'

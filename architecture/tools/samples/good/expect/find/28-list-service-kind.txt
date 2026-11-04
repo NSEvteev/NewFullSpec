@@ -1,0 +1,9 @@
+$ find.py --list orders колонка
+# код выхода 0
+ключей: 6 — orders колонка
+orders.amount · orders · колонка · «Сумма заказа» · раздела нет
+orders.created_at · orders · колонка · раздела нет
+orders.customer · orders · колонка · «Кто заказал: почта покупателя» · раздела нет
+orders.id · orders · колонка · раздела нет
+orders.paid_at · orders · колонка · «когда шлюз подтвердил списание; пусто — заказ не оплачен»
+orders.status · orders · колонка · «Не просто «оплачен или нет».»

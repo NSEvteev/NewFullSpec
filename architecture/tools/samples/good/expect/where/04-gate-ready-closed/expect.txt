@@ -1,0 +1,3 @@
+$ where.py --gate ready
+# код выхода 1
+ворота ready: закрыты — есть вопросы к владельцу: d-poll (предложено), c-oc-end (предложено), c-oc-show (предложено), c-oc-wait (предложено), c-web-page-wait (предложено), c-web-step-show (предложено), c-web-step-poll (предложено), c-web-conn-wait (предложено), c-web-get-order (предложено), c-web-poll-consts (предложено), c-web-cart (предложено), c-web-pending (предложено)

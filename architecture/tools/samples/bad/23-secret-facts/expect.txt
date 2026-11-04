@@ -1,0 +1,1 @@
+ошибка: ASIS/orders/.facts.json — у PAYMENTS_API_KEY в «default» значение секрета: перевыними факты, скрипт его маскирует

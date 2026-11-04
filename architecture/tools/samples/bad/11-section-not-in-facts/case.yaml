@@ -1,0 +1,17 @@
+# Испорченная проверочная карта: №11 — раздел метода, которого нет в фактах (опечатка или устарел).
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/methods.md
+  old: |2
+
+    ## GET /api/v1/orders/{order_id}
+  new: |2
+
+    ## DELETE /api/v1/orders/{order_id}
+    Группа: Заказы
+    Что делает: отменяет заказ.
+    Доступ: без входа
+    Код: `src/orders/orders/api.py:23`
+
+    ## GET /api/v1/orders/{order_id}

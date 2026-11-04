@@ -1,0 +1,15 @@
+$ find.py 'web → orders: POST /api/v1/orders'
+# код выхода 0
+web → orders · связь — 1 метод
+md: architecture/ASIS/web/README.md:10
+  Подпись: заказы
+  Адрес: [[VITE_ORDERS_URL]]
+  Вход: без входа
+  Ожидание: ждёт ответа, предела в коде нет; повторов нет
+  При отказе: показывает покупателю текст ошибки под кнопкой, корзина остаётся
+  Код: src/web/src/api.ts:6 src/web/src/pages/OrdersPage.tsx:18
+POST /api/v1/orders:
+  md: architecture/ASIS/web/README.md:18
+  Код: src/web/src/api.ts:6
+  принимает: architecture/ASIS/orders/methods.md:1 · обработчик src/orders/orders/api.py:13
+  зовут шаги: web/order-create#submit «Отправляет заказ»

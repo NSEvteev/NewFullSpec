@@ -1,0 +1,11 @@
+{
+ "src/web/src/api.ts:6": "const resp = await fetch(ORDERS, {",
+ "src/web/src/pages/OrdersPage.tsx:10": "const cart: CartItem[] = JSON.parse(localStorage.getItem(CART_KEY) ?? \"[]\");",
+ "src/web/src/pages/OrdersPage.tsx:14": "const order = await createOrder(email, cart);",
+ "src/web/src/pages/OrdersPage.tsx:15": "localStorage.removeItem(CART_KEY);",
+ "src/web/src/pages/OrdersPage.tsx:16": "setResult(`Заказ ${order.id}: ${order.status}`);",
+ "src/web/src/pages/OrdersPage.tsx:18": "setResult(String(e));",
+ "src/web/src/pages/OrdersPage.tsx:26": "<button onClick={submit}>Оформить</button>",
+ "src/web/src/router.tsx:6": "{ path: \"/orders\", element: <OrdersPage /> },",
+ "src/web/vite.config.ts:9": "\"/api/v1/orders\": { target: env.VITE_ORDERS_URL, changeOrigin: true },"
+}

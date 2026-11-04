@@ -1,0 +1,15 @@
+version: 2
+updates:
+  # Действия GitHub Actions. Появится пакет — запись на него, например:
+  #   - package-ecosystem: "pip"
+  #     directory: "/src/<сервис>"
+  #     schedule: {interval: "weekly", day: "monday"}
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "ci"

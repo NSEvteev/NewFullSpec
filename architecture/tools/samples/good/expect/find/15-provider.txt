@@ -1,0 +1,18 @@
+$ find.py 'external:payments: POST /v1/charges'
+# код выхода 0
+external:payments: POST /v1/charges — внешний провайдер; справочника нет, вызов описан в «Связях» вызывающих (1)
+
+orders → external:payments · связь — 1 метод
+md: architecture/ASIS/orders/README.md:10
+  Подпись: оплата
+  Адрес: [[PAYMENTS_URL]]
+  Вход: ключ [[PAYMENTS_API_KEY]] в заголовке `Authorization`
+  Ожидание: ждёт ответа до [[_PAYMENTS_TIMEOUT]]; повторов нет
+  При отказе: метод отвечает 502 `PAYMENT_FAILED`; заказ остаётся «новым» — [[p-no-retry]]
+  Ключ шлюза есть только у orders: другие сервисы магазина к шлюзу не ходят.
+  Код: src/orders/orders/payments.py:18 :19 :16 src/orders/orders/api.py:19
+POST /v1/charges:
+  md: architecture/ASIS/orders/README.md:19
+  Код: src/orders/orders/payments.py:18
+  принимает: внешний провайдер — справочника нет
+  зовут шаги: orders/order-create#charge «Списывает деньги»

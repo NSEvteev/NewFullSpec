@@ -1,0 +1,1 @@
+ошибка: ASIS/orders/settings.md:7 — в тексте значение секрета PAYMENTS_API_KEY: убери его, пиши имя настройки

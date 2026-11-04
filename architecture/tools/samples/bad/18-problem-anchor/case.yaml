@@ -1,0 +1,14 @@
+# Испорченная проверочная карта: №18 — две проблемы сервиса с одним якорем.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/ASIS/orders/problems.md
+  old: 'Код: `src/orders/orders/service.py:18` · `src/orders/orders/api.py:19` · `src/orders/orders/startup.py:7`'
+  new: |-
+    Код: `src/orders/orders/service.py:18` · `src/orders/orders/api.py:19` · `src/orders/orders/startup.py:7`
+
+    ## Вторая проблема с тем же якорем {#p-no-retry}
+    Важность: низкая
+    Проверено: по коду
+    Текст.
+    Код: `src/orders/orders/service.py:18`

@@ -1,0 +1,3 @@
+ошибка: ASIS/_processes/order-create.md:16 — «shop» нет в «Участники:»
+ошибка: ASIS/_processes/order-create.md:16 — «внутри»: шаг web#submit не отправителя и не получателя
+ошибка: ASIS/_processes/order-create.md:16 — стрелка submit «shop → orders»: ни один шаг отправителя в «внутри» не зовёт [[orders: POST /api/v1/orders]]; допиши «Справочник: зовёт …» в шаг shop

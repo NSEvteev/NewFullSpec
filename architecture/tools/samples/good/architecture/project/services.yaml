@@ -1,0 +1,19 @@
+# Проверочная карта: реестр выдуманного магазина. Что значит каждое поле — шапка project/services.yaml
+# настоящей карты. Здесь нарочно два сервиса разных видов: orders — с фактами, web — без них.
+
+web:
+  kind: frontend
+  root: src/web
+  package: src/web
+  tests: []
+  facts: []
+  short: web
+
+orders:
+  kind: service
+  root: src/orders
+  package: src/orders/orders
+  openapi: http://localhost:8010/openapi.json
+  tests: [tests]
+  facts: [fastapi-openapi, pydantic-settings, postgres, alembic, pytest]
+  short: ord

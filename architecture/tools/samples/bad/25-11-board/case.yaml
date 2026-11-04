@@ -1,0 +1,7 @@
+# Испорченная проверочная карта: 25.11 — в «Связях» web появился подраздел, а узла changes на доске нет.
+# Портится копия чистой карты tools/samples/good/ (пути — от good/): replace — замены old → new,
+# add — новые файлы, remove — удаляемые. Все ожидаемые сообщения — expect.txt рядом.
+replace:
+- file: architecture/TOBE/board.yaml
+  old: "  web:\n    status: changes\n    why: зовёт orders ещё и за статусом заказа\n"
+  new: ''
