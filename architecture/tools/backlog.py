@@ -202,6 +202,8 @@ def show_list(folder: Path) -> list[str]:
     for n, it in enumerate(items, 1):
         p = progress(folder, it["theme"])
         step = "готово к /dev" if p["current"] is None else f"шаг {p['current'] + 1} из {len(STEPS)}"
+        if n > 1:
+            out.append("")
         out.append(f"{n}. {it['title']} [{it['theme']}] — {step} · {counts(p)}")
         got, start = field(it["body"], "Получим"), field(it["body"], "С чего начать")
         if got and BLANK not in got:
