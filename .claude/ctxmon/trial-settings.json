@@ -1,0 +1,27 @@
+{
+  "statusLine": {
+    "type": "command",
+    "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxStatus.py --marks 7,8,9,10"
+  },
+  "hooks": {
+    "SessionStart": [
+      {"hooks": [{"type": "command", "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py start --marks 7,8,9,10", "timeout": 30}]},
+      {"matcher": "compact", "hooks": [{"type": "command", "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py wake", "asyncRewake": true, "timeout": 30}]}
+    ],
+    "UserPromptSubmit": [
+      {"hooks": [{"type": "command", "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py prompt --marks 7,8,9,10", "timeout": 15}]}
+    ],
+    "PreToolUse": [
+      {"matcher": "Skill", "hooks": [{"type": "command", "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py skill --marks 7,8,9,10", "timeout": 15}]}
+    ],
+    "PostToolUse": [
+      {"matcher": "*", "hooks": [{"type": "command", "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py post --marks 7,8,9,10", "timeout": 15}]}
+    ],
+    "Stop": [
+      {"hooks": [{"type": "command", "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py stop --marks 7,8,9,10", "timeout": 15}]}
+    ],
+    "PreCompact": [
+      {"hooks": [{"type": "command", "command": "PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py precompact --marks 7,8,9,10", "timeout": 60}]}
+    ]
+  }
+}
