@@ -39,6 +39,8 @@ PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxSelftest.py          # пос�
 claude --settings ~/.claude/ctxmon/trial-settings.json # пробная сессия, общие настройки не тронуты
 ```
 
+**После правки монитора** — обновить его копию в шаблоне NewFullSpec, папка `.claude/ctxmon/`: оттуда монитор ставится на другие машины. Как — её `INSTALL.md`, раздел «Обновить копию».
+
 **Включить на всей машине** — в `~/.claude/settings.json` те же `statusLine` и `hooks`, что в `trial-settings.json`, без `--marks 7,8,9,10`. Включение сразу задевает все живые сессии. **Выключить** — убрать оба раздела.
 
 **Пробуждение после сжатия** держится на втором хуке `SessionStart` — с `"matcher": "compact"` и `"asyncRewake": true`, команда `ctxHooks.py wake`. Без `asyncRewake` хук выполняется вместе со стартом сессии, и разбудить её ему нечем. `matcher` можно и не ставить: на обычном старте `wake` сам ничего не делает. Проверить без сжатия: `echo '{"session_id":"probe","source":"compact"}' | PYTHONIOENCODING=utf-8 python ~/.claude/ctxmon/ctxHooks.py wake; echo $?` — текст пробуждения и код 2.
