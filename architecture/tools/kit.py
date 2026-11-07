@@ -16,6 +16,7 @@
 
 Что читает и пишет. status и check только читают. init пишет project/settings.yaml и .github/CODEOWNERS; если настройки
 после записи не читаются как задумано, возвращает файл как был. Сам kit.py в check не входит: в нём лежат шаблоны поиска.
+Сторонние файлы скиллов (.claude/skills/<скилл>/upstream/) в check не входят: они лежат как есть, их текст не правится.
 
 Коды выхода: 0 — настроен (status), записано (init), находок нет (check); 1 — есть что заполнить или что убрать;
 2 — ошибка вызова.
@@ -56,6 +57,9 @@ KIT_PATHS = (
     "scripts/test_limited.py",
 )
 NOT_SCANNED = {".claude/settings.local.json", "architecture/tools/kit.py"}
+# сторонние файлы скиллов лежат как есть (.claude/skills/<скилл>/upstream/): их текст не правится, имён проекта в нём нет,
+# а пути в примерах кода — чужие
+VENDOR = re.compile(r"^\.claude/skills/[^/]+/upstream/")
 SKIP_DIRS = {".git", "node_modules", "__pycache__", ".ruff_cache", ".pytest_cache", ".venv", "venv", ".playwright-cli"}
 ABS_PATH = re.compile(r"[A-Za-z]:[\\/]+(?:Users|Dev|home)[\\/]|(?<![\w.~])/(?:home|Users)/[\w.-]+/|(?<![\w.])/[a-z]/Dev/", re.I)
 OWNER_RE = re.compile(r"^[\w-]+(/[\w-]+)?$")
@@ -141,7 +145,9 @@ def check(root: Path, extra: list[str], everything: bool) -> list[str]:
     found = []
     for p in walk(repo):
         rel = p.relative_to(repo).as_posix()
-        if rel in NOT_SCANNED or rel == f"{root.name}/project/settings.yaml" or not (everything or in_kit(rel)):
+        if rel in NOT_SCANNED or rel == f"{root.name}/project/settings.yaml" or VENDOR.match(rel):
+            continue
+        if not (everything or in_kit(rel)):
             continue
         try:
             lines = p.read_text(encoding="utf-8").splitlines()
@@ -203,6 +209,11 @@ def selftest() -> int:
         got_found = "\n".join(check(root, [], False))
         if got_found.count("«склад»") != 1 or got_found.count("«8010»") != 1 or got_found.count("абсолютный путь") != 3:
             bad.append(f"порча не поймана:\n{got_found}")
+        vendor = repo / ".claude" / "skills" / "x" / "upstream"
+        vendor.mkdir(parents=True)
+        (vendor / "data.csv").write_text("C:/Users/x/y\nсклад\n", encoding="utf-8")
+        if "upstream/data.csv" in "\n".join(check(root, [], False)):
+            bad.append("сторонний файл скилла в upstream/ проверен, а не пропущен")
         (repo / "src").mkdir()
         (repo / "src" / "b.py").write_text("склад\n", encoding="utf-8")
         if "src/b.py" in got_found or "src/b.py" not in "\n".join(check(root, [], True)):

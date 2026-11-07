@@ -12,6 +12,7 @@
 import json
 import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -21,6 +22,7 @@ TOOLS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TOOLS))
 
 import map as map_cmd  # noqa: E402
+import relocate  # noqa: E402
 from build import STAMP_RE, Site  # noqa: E402
 from mapmodel import ChangeModel, MapModel, code_gaps  # noqa: E402
 
@@ -376,6 +378,78 @@ def test_code_relocate_by_text(tmp_path):
     assert any("payments.py:14 → :16" in x for x in out) and out[-1].startswith("перенос ссылок «как будет»: перенесено 1")
     assert "Код: `src/orders/orders/payments.py:16`" in (root / "TOBE" / "orders" / "own.md").read_text(encoding="utf-8")
     assert map_cmd.code_relocate(root)[-1].startswith("перенос ссылок «как будет»: перенесено 0, вручную 0")
+
+
+def test_code_relocate_neighbours(tmp_path):
+    """map.py code --relocate на испорченном входе: соседние ссылки :14 и :16, две строки выше обеих и одна между ними —
+    каждая на своей строке (:16 и :19), а не обе на :16 (однажды так: первую перенесли на номер второй, вторую «нашли»
+    по уже записанному тексту). Строку второй переписали — «вручную» с текстом «было», и повтор говорит то же, а не
+    оставляет её молча на номере, куда съехала первая."""
+    pay = "src/orders/orders/payments.py"
+    root = _done_copy(tmp_path / "1")
+    map_cmd.code(root, [("TOBE/orders/own.md#settle", [f"{pay}:14", f"{pay}:16"])])
+    src = root.parent / pay
+    code = src.read_text(encoding="utf-8").split("\n")
+    src.write_text("\n".join(["# a", "# b"] + code[:15] + ["# между"] + code[15:]), encoding="utf-8")
+    out = map_cmd.code_relocate(root)
+    own = (root / "TOBE" / "orders" / "own.md").read_text(encoding="utf-8")
+    assert f"Код: `{pay}:16` · `{pay}:19`" in own, out
+    assert map_cmd.code_relocate(root)[-1].startswith("перенос ссылок «как будет»: перенесено 0, вручную 0")
+
+    root = _done_copy(tmp_path / "2")
+    map_cmd.code(root, [("TOBE/orders/own.md#settle", [f"{pay}:14", f"{pay}:16"])])
+    src = root.parent / pay
+    code = src.read_text(encoding="utf-8").split("\n")
+    code[15] = "        async with httpx.AsyncClient() as client:  # переписана"
+    src.write_text("\n".join(["# a", "# b"] + code), encoding="utf-8")
+    out = map_cmd.code_relocate(root)
+    assert any(x.startswith("вручную:") and f"{pay}:16" in x and "AsyncClient(timeout=_PAYMENTS_TIMEOUT)" in x
+               for x in out), out
+    assert map_cmd.code_relocate(root) == out
+    assert f"Код: `{pay}:14` · `{pay}:16`" in (root / "TOBE" / "orders" / "own.md").read_text(encoding="utf-8")
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "core.autocrlf=false", *args],
+                   cwd=repo, check=True, capture_output=True)
+
+
+def test_diff_check_neighbours(tmp_path):
+    """Сверка закрытия по диффу на испорченном входе. startup.py: пять строк выше :7 и три между :7 и :12 — relocate
+    переносит :7 → :12 и :12 → :20; сверка не двигает :12 второй раз, на :20 (однажды так: номер первой совпал с
+    прежним номером второй). main.py:8 запомнена с другим текстом — номер по диффу (:10) не принимается: «вручную» с
+    текстом «было». api.py:26 переписана — «вручную» с текстом «было»."""
+    root = _done_copy(tmp_path)
+    repo = root.parent
+    cover = root / "TOBE" / "README.md"
+    cover.write_text(cover.read_text(encoding="utf-8") + "\nPR: #7\n", encoding="utf-8", newline="\n")
+    mem_p = root / "ASIS" / "orders" / ".anchors.json"
+    mem = json.loads(mem_p.read_text(encoding="utf-8"))
+    mem["src/orders/orders/main.py:8"] = "app = FastAPI()"
+    mem_p.write_text(json.dumps(mem, ensure_ascii=False, indent=1) + "\n", encoding="utf-8", newline="\n")
+    _git(repo, "init", "-q")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "до изменения")
+
+    def edit(rel: str, fix) -> None:
+        p = repo / rel
+        p.write_text("\n".join(fix(p.read_text(encoding="utf-8").split("\n"))), encoding="utf-8", newline="\n")
+
+    edit("src/orders/orders/startup.py", lambda c: [f"# {i}" for i in range(5)] + c[:7] + ["# x", "# y", "# z"] + c[7:])
+    edit("src/orders/orders/main.py", lambda c: ["# 1", "# 2"] + c)
+    edit("src/orders/orders/api.py", lambda c: c[:25] + ['        raise HTTPException(404, "NOT_FOUND")'] + c[26:])
+    _git(repo, "commit", "-q", "-am", "feat: проба (#7)")
+    moves, _ = relocate.plan(MapModel(root))  # как close: перенос по тексту до сверки
+    relocate.apply(MapModel(root), moves)
+    out = map_cmd.diff_check(root)
+    own = (root / "ASIS" / "orders" / "own.md").read_text(encoding="utf-8")
+    assert ("Код: `src/orders/orders/main.py:8` · `src/orders/orders/startup.py:12` · `src/orders/orders/startup.py:20`"
+            in own), out
+    manual = [x for x in out if x.startswith("вручную по диффу:")]
+    assert any("main.py:8" in x and "«app = FastAPI()»" in x for x in manual), out
+    assert any("api.py:26" in x and "строку переписали" in x and '«raise HTTPException(404, "ORDER_NOT_FOUND")»' in x
+               for x in manual), out
+    assert not any(x.startswith("по диффу: ") and "startup.py" in x for x in out), out
 
 
 def test_code_gaps_limiter(tmp_path):

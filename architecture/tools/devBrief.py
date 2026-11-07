@@ -15,6 +15,11 @@
 Что подставляет. {{номер}}, {{якорь}}, {{название блока}}, {{изменение}}, {{ветка}}, {{правки}} — команды find.py по
 правкам задач; {{блок и задачи}} — вывод find.py по блоку, его задачам и тестам дословно.
 
+Что --check считает незаполненным. Угловые скобки <…> вне кода. Внутри обратных кавычек — `…` и блоков ``` — код
+(`Promise<MediaFile[]>`, `<script>`, `<MediaPage />`), а не место для заполнения; исключение — места самого шаблона
+(`<путь>`, `<линт>`): их угловые скобки и в кавычках — незаполненное. Адрес <a@b.c> и вывод find.py в «Задачах блока»
+— тоже не незаполненное.
+
 Коды выхода: 0 — готово; 1 — бриф не готов или блока нет: причина в выводе; 2 — ошибка вызова.
 
 Чего не делает. Не заполняет границу и проверки: их знает только основная сессия после разведки. Не запускает агента.
@@ -34,6 +39,7 @@ TEMPLATE = TOOLS.parents[1] / ".claude" / "skills" / "dev-block" / "templates" /
 SAMPLE = TOOLS / "samples" / "good" / "architecture"
 UNFILLED = re.compile(r"<(?![^<>\n]*@)[^<>\n]{1,200}>")  # адрес в угловых скобках — не незаполненное
 TOKEN = re.compile(r"\{\{[^{}]+\}\}")
+CODE = re.compile(r"(`{3,}).*?\1|(`{1,2})[^`\n]+?\2", re.S)  # код: блок ``` или `…` внутри строки
 TAIL = "## Формат ответа"
 
 
@@ -85,11 +91,24 @@ def build(root: Path, block: str, template: str) -> str:
     return re.sub(r"\A<!--.*?-->\s*", "", text, flags=re.S)
 
 
-def check_text(text: str) -> list[str]:
-    """Что мешает отдать бриф агенту. Вид ответа и команды find.py — не незаполненное."""
+def template_places() -> set[str]:
+    """Места шаблона в угловых скобках: в кавычках они тоже незаполненные. Шаблона нет — таких мест нет."""
+    return set(UNFILLED.findall(TEMPLATE.read_text(encoding="utf-8"))) if TEMPLATE.is_file() else set()
+
+
+def unfilled(head: str, places: set[str]) -> list[str]:
+    """Угловые скобки вне кода; в коде — только места шаблона."""
+    spans = [m.span() for m in CODE.finditer(head)]
+    found = [m.group(0) for m in UNFILLED.finditer(head)
+             if m.group(0) in places or not any(a <= m.start() < b for a, b in spans)]
+    return list(dict.fromkeys(found))
+
+
+def check_text(text: str, places: set[str] | None = None) -> list[str]:
+    """Что мешает отдать бриф агенту. Вид ответа, команды find.py и код в кавычках — не незаполненное."""
     head = text.split(TAIL, 1)[0]
     head = re.sub(r"(## Задачи блока\n).*?(\nЧитать:)", r"\1\2", head, flags=re.S)  # вывод find.py — не незаполненное
-    out = [f"не заполнено: {m}" for m in dict.fromkeys(UNFILLED.findall(head))]
+    out = [f"не заполнено: {m}" for m in unfilled(head, template_places() if places is None else places)]
     border = re.search(r"## Граница\n(.*?)(?=\n## )", text, re.S)
     if not border:
         out.append("нет раздела «Граница»")
@@ -131,6 +150,14 @@ def selftest() -> int:
             bad.append(f"порча «{name}» не поймана")
     if check_text(filled.replace("## Коммиты\n", "## Коммиты\nCo-Authored-By: Имя <a@b.c>\n")):
         bad.append("адрес в угловых скобках принят за незаполненное")
+    code = "1. `src/media.ts` — `Promise<MediaFile[]>`, ``<script>``, `<MediaPage />`.\n```tsx\nconst p = <MediaPage />;\n```\n"
+    if check_text(filled.replace("## Граница\n", "## Граница\n" + code)):
+        bad.append(f"код в кавычках принят за незаполненное: {check_text(filled.replace('## Граница' + chr(10), '## Граница' + chr(10) + code))}")
+    for name, extra, want in (("<путь> вне кавычек", "1. <путь> — что сделать.\n", "<путь>"),
+                              ("место шаблона в кавычках", "1. `<путь>` — что сделать.\n", "<путь>"),
+                              ("скобки после кода", "`Promise` и <имя>\n", "<имя>")):
+        if f"не заполнено: {want}" not in check_text(filled.replace("## Граница\n", "## Граница\n" + extra)):
+            bad.append(f"«{name}» не пойман")
     try:
         build(SAMPLE, "b99", template)
         bad.append("несуществующий блок не пойман")

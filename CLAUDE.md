@@ -14,7 +14,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Правила:** подгружаются сами из `/.claude/rules/` при работе с файлами. Стандарт кода — [architecture/standards/code.md](/architecture/standards/code.md). Как устроен сам набор и как переносить его улучшения — [architecture/KIT.md](/architecture/KIT.md).
 
-**AskUserQuestion:** При предложении вариантов выбора использовать `AskUserQuestion` tool.
+**Вопросы решающему — в чате, по номерам, все сразу:** каждый вопрос с номером 1, 2, 3…; у вопроса — суть, варианты с ценой, рекомендуемый первым. Решающий отвечает в чате по номерам. `AskUserQuestion` не использовать (`architecture/PROCESS.md`, 6.3).
 
 ## Команды
 

@@ -2,7 +2,9 @@
 
 Зачем. Ссылка `путь:строка` указывает на строку, которая после правки кода стоит ниже или выше. Найти её новое
 место можно по запомненному тексту (ASIS/*/.anchors.json): если строка с тем же текстом в файле одна или стоит на
-сдвиге соседней уже перенесённой ссылки — это та же строка. Остальное переносится руками, с подсказкой, где искать.
+сдвиге соседней уже перенесённой ссылки — это та же строка. Тексты читаются все до переноса; номер, на который
+претендуют две ссылки, ни одной не ставится. Остальное переносится руками, с подсказкой, где искать. Тот же расчёт
+(solve) переносит ссылки правок «как будет» — map.py code --relocate.
 
 Кто зовёт. Только основная сессия — на закрытии изменения до агентов и после правок кода, сдвинувших строки
 (агенты его не запускают: он пересобирает общие страницы). Из корня репо:
@@ -31,35 +33,60 @@ import anchors  # noqa: E402
 from mapmodel import MapModel  # noqa: E402
 
 
+def solve(lines: anchors.Lines, todo: dict[str, str], stay: set[str]) -> tuple[dict[str, int], dict[str, str]]:
+    """Новые номера ссылок, чей текст на месте не совпал с запомненным. todo — {путь:строка: запомненный текст}, stay —
+    ссылки, что остаются на своих номерах. Тексты — только запомненные до переноса: ни одна ссылка не ищется по тексту,
+    записанному этим же переносом (однажды соседние :650 и :654 при сдвиге +4 обе стали :654). Кандидат — строка файла
+    с тем же текстом (пробелы по краям не в счёт): один — он; несколько — тот единственный, что на сдвиге уже
+    перенесённой ссылки того же файла; иначе — «вручную» с кандидатами. Номер, на который переходят две ссылки или
+    который остаётся за неперенесённой, — «вручную» у переносимых: у двух ссылок один номер — одна из них наугад.
+    Ответ: ({путь:строка: новая строка}, {путь:строка: подсказка «вручную»})."""
+    moves: dict[str, int] = {}
+    cands: dict[str, list[int]] = {}
+    shifts: dict[str, set[int]] = {}  # путь → сдвиги ссылок с одним кандидатом
+    for key, text in todo.items():
+        path, _, n = key.rpartition(":")
+        cands[key] = anchors.find_moved(lines, path, text, int(n))
+        if len(cands[key]) == 1:
+            moves[key] = cands[key][0]
+            shifts.setdefault(path, set()).add(moves[key] - int(n))
+    for key, got in cands.items():
+        path, _, n = key.rpartition(":")
+        fit = [c for c in got if c - int(n) in shifts.get(path, set())]
+        if key not in moves and len(got) > 1 and len(fit) == 1:
+            moves[key] = fit[0]
+    hints: dict[str, str] = {}
+    clash = True
+    while clash:  # снятый перенос оставляет ссылку на месте — её номер может быть целью другого переноса
+        staying = stay | (set(todo) - set(moves))
+        claims: dict[str, list[str]] = {}
+        for key, to in moves.items():
+            claims.setdefault(f"{key.rpartition(':')[0]}:{to}", []).append(key)
+        clash = False
+        for target, keys in claims.items():
+            holders = sorted(set(keys) | ({target} & staying))
+            if len(holders) < 2:
+                continue
+            clash = True
+            for key in keys:
+                del moves[key]
+                others = ", ".join(h for h in holders if h != key)
+                hints[key] = f"кандидат :{target.rpartition(':')[2]}, но этот номер и у {others}: какая где, не понять"
+    for key, got in cands.items():
+        if key not in moves and key not in hints:
+            hints[key] = (f"кандидаты {', '.join(f':{c}' for c in got[:5])} — какой, по сдвигу не понять" if got
+                          else "текста в файле нет — строку переписали, кандидатов нет")
+    return moves, hints
+
+
 def plan(m: MapModel) -> tuple[dict[str, int], list[str]]:
     """{"путь:старая": новая строка} и список «вручную» с подсказками."""
-    lines = anchors.Lines(m.repo)
-    moves: dict[str, int] = {}
-    manual: list[str] = []
-    todo = [c for c in anchors.changed(m)]
-    shifts: dict[str, list[int]] = {}  # путь → сдвиги уже перенесённых ссылок
-    for _ in range(2):  # второй проход — по сдвигам соседей
-        rest = []
-        for folder, key, was, now, where in todo:
-            path, _, n = key.rpartition(":")
-            cands = anchors.find_moved(lines, path, was, int(n))
-            pick = None
-            if len(cands) == 1:
-                pick = cands[0]
-            elif cands:
-                for d in shifts.get(path, []):
-                    if int(n) + d in cands:
-                        pick = int(n) + d
-                        break
-            if pick:
-                moves[key] = pick
-                shifts.setdefault(path, []).append(pick - int(n))
-            else:
-                rest.append((folder, key, was, now, where, cands))
-        todo = [x[:5] for x in rest]
-    for folder, key, was, now, where, cands in rest:
-        hint = f"похожие строки: {', '.join(f':{c}' for c in cands[:5])}" if cands else "текста в файле нет — строку переписали"
-        manual.append(f"{', '.join(where)} — {key}: «{was[:60]}» — {hint}")
+    changed = anchors.changed(m)
+    todo = {key: was for _, key, was, _, _ in changed}
+    stay = {k for keys in anchors.refs(m).values() for k in keys} - set(todo)
+    moves, hints = solve(anchors.Lines(m.repo), todo, stay)
+    manual = [f"{', '.join(where)} — {key}: «{was[:60]}» — {hints[key]}" for _, key, was, _, where in changed
+              if key in hints]
     return moves, manual
 
 

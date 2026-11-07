@@ -6,7 +6,7 @@ description: Инструменты Claude Code в проекте — скилл
 
 | Что | Описание |
 |-----|----------|
-| [skills/](./skills/README.md) | Скиллы: `/new-project`, `/backlog`, `/dev` и пять шагов процесса изменений, `/docker-up`, `/handoff` |
+| [skills/](./skills/README.md) | Скиллы: `/new-project`, `/backlog`, `/dev` и пять шагов процесса изменений, макет `/ui-ux`, `/design`, `/animation`, `/docker-up`, `/handoff` |
 | [ctxmon/](./ctxmon/INSTALL.md) | Монитор контекста — копия для установки на машину: строка контекста, передача перед сжатием, пробуждение сессии после него; ставится один раз на машину в `~/.claude/ctxmon/` |
 | [rules/](./rules/) | Правила, которые подгружаются сами: `core` (изменения — через `/dev`), `code` (стандарт кода, проверка результата), `search`, `working` (общие уроки работы) |
 | `scripts/agent_progress.py` | Монитор хода агента блока |

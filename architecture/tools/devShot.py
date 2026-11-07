@@ -6,23 +6,31 @@
 Кто зовёт. Скиллы /dev-describe, /dev-block, /dev-deliver. Из корня репо, сервисы подняты:
   python <карта>/tools/devShot.py /orders --out <папка>                      страница интерфейса, вход — ролью user
   python <карта>/tools/devShot.py /orders --role admin --out <папка>         вход админом: его действия могут сохраниться в данных
+  python <карта>/tools/devShot.py /orders --cookie <имя>=<значение> --out <папка>
+                                                                             вход кукой: ставится до перехода на страницу,
+                                                                             домен — из адреса страницы, путь /
   python <карта>/tools/devShot.py --map TOBE/index.html --out <папка>        страница карты; сервер поднимает и гасит сам
   … --size 1920x1080 [--size 2560x1440 …]   ширины; по умолчанию все три: см. SIZES
   … --name <приставка>                      имя файлов; по умолчанию — из адреса
-  … --dry-run                               что будет сделано; пропуск в выводе скрыт
+  … --dry-run                               что будет сделано; пропуск и значение куки в выводе скрыты
   python <карта>/tools/devShot.py --selftest                                 самопроверка без браузера
+Страницу /orders Git Bash подменяет на C:/Program Files/Git/orders — скрипт возвращает её сам, MSYS_NO_PATHCONV не нужен.
 
-Что печатает. Строку на снимок: файл, прокрутка вбок, ошибки консоли. Картинки в контекст не несёт: открыть файл через Read
-— дело сессии, только там, где нужно смотреть.
+Что печатает. Строку на снимок: файл, ответ страницы (код HTTP), прокрутка вбок, ошибки консоли. Ответ 400 и выше —
+беда: страницы нет или вход не прошёл, снимок показывает не то. Картинки в контекст не несёт: открыть файл через Read —
+дело сессии, только там, где нужно смотреть.
 
 Настройка — ключ ui в project/settings.yaml (адрес интерфейса, команда входа, ключ localStorage, ширины): своего адреса и
-своего входа у скрипта нет. Ключа нет — снимаются только страницы карты (--map) и страницы с полным адресом, без входа.
+своего входа у скрипта нет. Ключа нет — снимаются только страницы карты (--map) и страницы с полным адресом; вход — только
+кукой (--cookie).
 
-Что читает и пишет. Команда входа ui.login_command печатает значение для localStorage (в вывод скрипта оно не попадает);
-playwright-cli в своём окне -s=<имя>, запускается из папки --out: из репо он мусорит своей папкой. Пишет только в --out. Репо
-и базу не меняет; действия под admin страница может сохранить как настройки человека: поэтому умолчание — роль user.
+Что читает и пишет. Команда входа ui.login_command печатает значение для localStorage; ни оно, ни значение --cookie в вывод
+скрипта не попадают; playwright-cli в своём окне -s=<имя>, запускается из папки --out: из репо он мусорит своей папкой.
+Сообщения консоли playwright-cli отдаёт файлом в своей папке — скрипт читает его оттуда. Пишет только в --out. Репо и базу
+не меняет; действия под admin страница может сохранить как настройки человека: поэтому умолчание — роль user.
 
-Коды выхода: 0 — снято, бед нет; 1 — беда в строке снимка или снимок не вышел; 2 — ошибка вызова.
+Коды выхода: 0 — снято, бед нет; 1 — беда в строке снимка (ответ 400 и выше, прокрутка вбок, ошибки консоли) или снимок
+не вышел; 2 — ошибка вызова.
 
 Чего не делает. Не кликает и не подменяет ответы сервисов: сценарии — playwright-cli run-code, как в PROJECT.md,
 «Снимки интерфейса».
@@ -39,6 +47,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 import urllib.request
 from collections.abc import Callable
 from pathlib import Path
@@ -50,6 +59,7 @@ REPO = TOOLS.parents[1]
 SIZES = ("1920x1080", "2560x1440")
 SIZE_RE = re.compile(r"^(\d{3,5})x(\d{3,5})$")
 PLAYWRIGHT = "playwright-cli.cmd" if os.name == "nt" else "playwright-cli"
+STATUS_JS = "performance.getEntriesByType('navigation')[0]?.responseStatus ?? 0"  # код ответа самой страницы
 
 Cli = Callable[[list[str]], tuple[int, str]]
 
@@ -95,16 +105,29 @@ def parse_sizes(sizes: list[str]) -> list[tuple[int, int]]:
     return out
 
 
-def plan(url: str, sizes: list[tuple[int, int]], name: str, auth: str | None, key: str = "auth") -> list[tuple[list[str], str]]:
+def parse_cookie(text: str) -> tuple[str, str]:
+    """--cookie имя=значение; значение может само содержать «=»."""
+    name, sep, value = text.partition("=")
+    if not sep or not name.strip() or not value:
+        raise ValueError("кука — видом <имя>=<значение>")
+    return name.strip(), value
+
+
+def plan(url: str, sizes: list[tuple[int, int]], name: str, auth: str | None, key: str = "auth",
+         cookie: tuple[str, str] | None = None) -> list[tuple[list[str], str]]:
     """Команды playwright-cli по порядку: (аргументы, что ждём). Вход — до перехода на страницу."""
     origin = re.match(r"^https?://[^/]+", url).group(0)
     steps: list[tuple[list[str], str]] = [(["open", origin], "")]
     if auth:
         steps.append((["localstorage-set", key, auth], ""))
+    if cookie:
+        host = urllib.parse.urlsplit(url).hostname or ""
+        steps.append((["cookie-set", cookie[0], cookie[1], "--domain", host, "--path", "/"], ""))
     for w, h in sizes:
         steps += [
             (["resize", str(w), str(h)], ""),
             (["goto", url], ""),
+            (["eval", STATUS_JS], f"status:{w}"),
             (["screenshot", f"--filename={name}-{w}.png"], f"shot:{w}"),
             (["eval", "document.documentElement.scrollWidth > window.innerWidth"], f"scroll:{w}"),
             (["console", "error"], f"console:{w}"),
@@ -131,13 +154,34 @@ def shoot(steps: list[tuple[list[str], str]], cli: Cli, say: Callable[[str], Non
     finally:
         cli(["close"])
     for width, got in sorted(results.items()):
+        status = response_status(got.get("status", ""))
+        failed = bool(status and status >= 400)
         scroll = "true" in got.get("scroll", "").lower()
         errors = len(re.findall(r"\[error\]|^error", got.get("console", ""), re.I | re.M))
         path = re.search(r"[^\s()\[\]]+\.png", got.get("shot", ""))
-        if scroll or errors:
+        if failed or scroll or errors:
             ok = False
-        say(f"{width}: {path.group(0) if path else '?'} · прокрутка вбок: {'ЕСТЬ' if scroll else 'нет'} · ошибок консоли: {errors}")
+        answer = f"{status} — ОШИБКА" if failed else str(status or "?")
+        say(f"{width}: {path.group(0) if path else '?'} · ответ страницы: {answer} · "
+            f"прокрутка вбок: {'ЕСТЬ' if scroll else 'нет'} · ошибок консоли: {errors}")
     return ok
+
+
+def response_status(text: str) -> int | None:
+    """Код ответа из вывода eval: строка из одного числа; 0 и непонятный вывод — None: код не узнан."""
+    m = re.search(r"^\s*(\d{1,3})\s*$", text, re.M)
+    if not m or int(m.group(1)) == 0:
+        return None
+    return int(m.group(1))
+
+
+def with_logs(text: str, folder: Path) -> str:
+    """playwright-cli отдаёт сообщения консоли ссылкой на файл [Console](….log): дописать к выводу текст файла."""
+    for rel in re.findall(r"\]\(([^)]+\.log)\)", text):
+        path = folder / rel.replace("\\", "/")
+        if path.is_file():
+            text += "\n" + path.read_text(encoding="utf-8", errors="replace")
+    return text
 
 
 class MapServer:
@@ -204,30 +248,52 @@ def selftest() -> int:
         bad.append("ширина без высоты не поймана")
     except ValueError:
         pass
+    steps = plan("http://localhost:8090/media?x=1", [(1920, 1080)], "m", None, cookie=parse_cookie("sess=a.b=c"))
+    names = [a[0] for a, _ in steps]
+    if ["cookie-set", "sess", "a.b=c", "--domain", "localhost", "--path", "/"] not in [a for a, _ in steps]:
+        bad.append(f"кука: имя, значение с «=» или домен из адреса: {steps[1]}")
+    if names.index("cookie-set") > names.index("goto"):
+        bad.append("кука должна стоять до перехода на страницу")
+    for wrong in ("sess", "=v", "sess="):
+        try:
+            parse_cookie(wrong)
+            bad.append(f"кука «{wrong}» без имени или значения не поймана")
+        except ValueError:
+            pass
     said: list[str] = []
 
     if page_path("C:/Program Files/Git/orders") != "/orders" or page_path("/report") != "/report":
         bad.append("путь страницы из Git Bash не восстановлен")
-
-    def clean(args: list[str]) -> tuple[int, str]:
-        return (0, {"screenshot": "- [Screenshot of viewport](a-1920.png)", "eval": "false", "console": ""}.get(args[0], ""))
-
-    if not shoot(plan("http://x/p", [(1920, 1080)], "a", None), clean, said.append) or not said[-1].startswith("1920: a-1920.png · прокрутка вбок: нет"):
-        bad.append(f"чистый снимок: {said}")
     closed: list[str] = []
 
-    def scrolls(args: list[str]) -> tuple[int, str]:
-        closed.append(args[0])
-        return (0, {"screenshot": "a-1920.png", "eval": "true", "console": ""}.get(args[0], ""))
+    def fake(status: str = "### Result\n200\n### Ran Playwright code", scroll: str = "false", console: str = "") -> Cli:
+        """Подставной playwright-cli: eval кода ответа и eval прокрутки различаются по выражению."""
+        def cli(args: list[str]) -> tuple[int, str]:
+            closed.append(args[0])
+            if args[0] == "eval":
+                return 0, status if args[1] == STATUS_JS else scroll
+            return 0, {"screenshot": "- [Screenshot of viewport](a-1920.png)", "console": console}.get(args[0], "")
+        return cli
 
-    if shoot(plan("http://x/p", [(1920, 1080)], "a", None), scrolls, lambda _: None) or "close" not in closed:
+    if not shoot(plan("http://x/p", [(1920, 1080)], "a", None), fake(), said.append) or \
+            said[-1] != "1920: a-1920.png · ответ страницы: 200 · прокрутка вбок: нет · ошибок консоли: 0":
+        bad.append(f"чистый снимок: {said}")
+    closed.clear()
+    if shoot(plan("http://x/p", [(1920, 1080)], "a", None), fake(scroll="true"), lambda _: None) or "close" not in closed:
         bad.append("прокрутка вбок не поймана или окно не закрыто")
-
-    def errors(args: list[str]) -> tuple[int, str]:
-        return (0, {"screenshot": "a-1920.png", "eval": "false", "console": "[ERROR] значения не получены"}.get(args[0], ""))
-
-    if shoot(plan("http://x/p", [(1920, 1080)], "a", None), errors, lambda _: None):
+    if shoot(plan("http://x/p", [(1920, 1080)], "a", None), fake(console="[ERROR] значения не получены"), lambda _: None):
         bad.append("ошибка консоли не поймана")
+    if shoot(plan("http://x/p", [(1920, 1080)], "a", None), fake(status="### Result\n404\n"), said.append) or \
+            "ответ страницы: 404 — ОШИБКА" not in said[-1]:
+        bad.append(f"ответ 404 не пойман: {said[-1]}")
+    if not shoot(plan("http://x/p", [(1920, 1080)], "a", None), fake(status="0"), said.append) or "ответ страницы: ?" not in said[-1]:
+        bad.append(f"неузнанный ответ — не беда, а «?»: {said[-1]}")
+    with tempfile.TemporaryDirectory() as tmp:
+        (Path(tmp) / ".playwright-cli").mkdir()
+        (Path(tmp) / ".playwright-cli" / "console-1.log").write_text("Total messages: 1 (Errors: 1)\n\n[ERROR] 401 @ /api\n", encoding="utf-8")
+        text = with_logs("### Result\n- [Console](.playwright-cli\\console-1.log)", Path(tmp))
+        if shoot(plan("http://x/p", [(1920, 1080)], "a", None), fake(console=text), said.append) or not said[-1].endswith("ошибок консоли: 1"):
+            bad.append(f"ошибки консоли из файла playwright-cli не прочитаны: {said[-1]}")
     closed.clear()
 
     def fails(args: list[str]) -> tuple[int, str]:
@@ -261,6 +327,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--map", dest="map_page")
     ap.add_argument("--out")
     ap.add_argument("--role", default="user", choices=("user", "admin"))
+    ap.add_argument("--cookie")
     ap.add_argument("--size", action="append", default=[])
     ap.add_argument("--name")
     ap.add_argument("--dry-run", action="store_true")
@@ -275,10 +342,12 @@ def main(argv: list[str] | None = None) -> int:
     ui = load_ui()
     try:
         sizes = parse_sizes(a.size or [str(s) for s in ui.get("sizes") or SIZES])
+        cookie = parse_cookie(a.cookie) if a.cookie else None
         auth = None if a.map_page else login_value(ui, a.role)
     except ValueError as e:
         print(f"ошибка: {e}", file=sys.stderr)
         return 2
+    secrets = [x for x in (auth, cookie[1] if cookie else None) if x]  # в вывод не попадают
     name = a.name or file_name(target)
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -287,13 +356,17 @@ def main(argv: list[str] | None = None) -> int:
     def cli(args: list[str]) -> tuple[int, str]:
         res = subprocess.run([PLAYWRIGHT, f"-s={session}", *args], capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=out)
         text = (res.stdout + res.stderr).strip()
-        return res.returncode, text.replace(auth, "<вход>") if auth else text
+        if args[0] == "console":
+            text = with_logs(text, out)
+        for secret in secrets:
+            text = text.replace(secret, "<вход>")
+        return res.returncode, text
 
     def run(url: str) -> bool:
-        steps = plan(url, sizes, name, auth, str(ui.get("storage_key") or "auth"))
+        steps = plan(url, sizes, name, auth, str(ui.get("storage_key") or "auth"), cookie)
         if a.dry_run:
             for args, _ in steps:
-                print("сделаю: playwright-cli " + " ".join("<вход>" if x == auth else x for x in args))
+                print("сделаю: playwright-cli " + " ".join("<вход>" if x in secrets else x for x in args))
             return True
         return shoot(steps, cli, print)
 

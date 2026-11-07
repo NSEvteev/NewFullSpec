@@ -12,13 +12,18 @@
   python <карта>/tools/backlog.py check [<номер|тема>]    три места сходятся; новые строки без цитаты и пометки,
                                                           незаполненные места, битые ссылки
   python <карта>/tools/backlog.py take <номер|тема> <ветка>   в списке — «в работе: ветка …»
-  python <карта>/tools/backlog.py drop <тема> [--force]   удалить задачу: раздел списка, промт, папка; только по теме:
-                                                          номер сдвигается; незакоммиченные правки — только с --force
+  python <карта>/tools/backlog.py drop <тема> [--force] [--ignore-links]
+                                                          удалить задачу: раздел списка, промт, папка; только по теме:
+                                                          номер сдвигается; незакоммиченные правки — только с --force;
+                                                          ссылки md на промт и папку задачи из других задач бэклога и из
+                                                          карты <карта>/ASIS — называет файлом и строкой и не удаляет;
+                                                          удалить всё равно, оставив их битыми, — --ignore-links
   python <карта>/tools/backlog.py --selftest              самопроверка во временной папке
   … --repo <папка>   другой корень репо
 
 Что читает. Папку бэклога (ключ backlog в project/settings.yaml, нет ключа — _backlog), её CLAUDE.md, промты и md папок
-задач, git diff HEAD — какие строки новые. Пометки разбирает mapmodel.py: так же их читают where.py и проверки «как будет».
+задач, git diff HEAD — какие строки новые; drop — ещё md карты <карта>/ASIS. Ссылка для drop — ссылка md [текст](путь),
+путь которой ведёт в промт или папку задачи; имя файла словами или в кавычках — не ссылка: так пишут «задача сделана». Пометки разбирает mapmodel.py: так же их читают where.py и проверки «как будет».
 
 Что пишет. new, take, drop — файлы бэклога, drop ещё и индекс git; остальные команды ничего не пишут. Не коммитит.
 
@@ -278,8 +283,37 @@ def take(repo: Path, ref: str, branch: str) -> list[str]:
     raise Fail(f"у задачи {it['theme']} в списке нет пункта «С чего начать»")
 
 
-def drop(repo: Path, ref: str, force: bool = False) -> list[str]:
-    """Удалить задачу целиком: раздел списка, промт, папка; всё сразу в индексе git, одним коммитом."""
+def links_to(repo: Path, it: dict) -> list[str]:
+    """Ссылки md на промт и папку задачи из остального бэклога и из карты «как есть»: после drop они ведут в никуда.
+    Свои файлы задачи и её раздел списка не в счёт — они уходят вместе с ней."""
+    folder = backlog_dir(repo)
+    promt, sub = (folder / f"promt-{it['theme']}.md").resolve(), (folder / it["theme"]).resolve()
+    own_lines = range(it["start"] + 1, it["end"] + 1)  # раздел задачи в списке, номера строк с 1
+    asis = repo / TOOLS.parent.name / "ASIS"
+    sources = sorted(folder.rglob("*.md")) + (sorted(asis.rglob("*.md")) if asis.is_dir() else [])
+    out = []
+    for path in sources:
+        real = path.resolve()
+        if real == promt or sub in real.parents:
+            continue
+        for no, line in enumerate(read_md(path), 1):
+            if path == folder / LIST_FILE and no in own_lines:
+                continue
+            hits = []
+            for target in LINK_RE.findall(line):
+                if target.startswith(("http:", "https:", "mailto:")):
+                    continue
+                dest = (repo / target.lstrip("/") if target.startswith("/") else path.parent / target).resolve()
+                if dest == promt or dest == sub or sub in dest.parents:
+                    hits.append(target)
+            if hits:
+                out.append(f"{path.relative_to(repo).as_posix()}:{no} — ссылка на {', '.join(dict.fromkeys(hits))}")
+    return out
+
+
+def drop(repo: Path, ref: str, force: bool = False, ignore_links: bool = False) -> list[str]:
+    """Удалить задачу целиком: раздел списка, промт, папка; всё сразу в индексе git, одним коммитом. Ссылки на неё из
+    других задач и карты — сначала назвать: удаляет при них только ignore_links, и они остаются в выводе."""
     if ref.isdigit():
         raise Fail("удалять только по теме: номер — строка показанного списка, он сдвигается")
     folder = backlog_dir(repo)
@@ -287,8 +321,15 @@ def drop(repo: Path, ref: str, force: bool = False) -> list[str]:
     promt, sub = folder / f"promt-{it['theme']}.md", folder / it["theme"]
     dirty = subprocess.run(["git", "status", "--porcelain", "--", str(promt), str(sub)], cwd=repo, capture_output=True,
                            text=True, encoding="utf-8", errors="replace").stdout.strip()
+    links = links_to(repo, it)
+    stop = []
     if dirty and not force:
-        raise Fail(f"у задачи незакоммиченные правки: закоммитить или --force\n{dirty}")
+        stop.append(f"у задачи незакоммиченные правки: закоммитить или --force\n{dirty}")
+    if links and not ignore_links:
+        stop.append(f"на файлы задачи ссылаются ({len(links)}) — поправить ссылки или удалить всё равно: --ignore-links\n"
+                    + "\n".join(links))
+    if stop:
+        raise Fail("\n".join(stop))
     lines, _ = read_list(folder)
     kept = lines[:it["start"]] + lines[it["end"]:]
     write(folder / LIST_FILE, "\n".join(kept).rstrip("\n") + "\n")
@@ -298,7 +339,8 @@ def drop(repo: Path, ref: str, force: bool = False) -> list[str]:
         promt.unlink()
     if sub.exists():
         shutil.rmtree(sub)
-    return [f"удалено: {promt.name}, {it['theme']}/, раздел списка"]
+    left = [f"остались битые ссылки ({len(links)}):"] + links if links else []
+    return [f"удалено: {promt.name}, {it['theme']}/, раздел списка"] + left
 
 
 def added_lines(path: Path, repo: Path) -> set[int] | None:
@@ -461,13 +503,33 @@ def selftest() -> int:
             bad.append("drop по номеру: нет ошибки")
         except Fail:
             pass
+        more = folder / "promt-tobe-more.md"
+        write(more, more.read_text(encoding="utf-8") + "\nСм. [`promt-demo.md`](promt-demo.md#что-хотим) и [макет](demo/m.md).\n"
+              "`promt-demo.md` (задача сделана) и [сайт](https://x/promt-demo.md).\n")
+        write(folder / "demo" / "m.md", "[назад](../promt-demo.md)\n")  # своя ссылка задачи уходит вместе с ней
+        asis = repo / TOOLS.parent.name / "ASIS" / "svc"
+        asis.mkdir(parents=True)
+        write(asis / "README.md", "# svc\n\nТребования — [задача](../../../_backlog/demo/).\nИ [от корня](/_backlog/promt-demo.md).\n"
+              "```\n[в коде](../../../_backlog/demo/)\n```\n")
+        refs = links_to(repo, resolve(folder, "demo"))
+        want(len(refs) == 3 and sum(x.startswith("_backlog/promt-tobe-more.md:") for x in refs) == 1
+             and f"{TOOLS.parent.name}/ASIS/svc/README.md:3 — ссылка на ../../../_backlog/demo/" in refs
+             and "_backlog/promt-tobe-more.md:17 — ссылка на promt-demo.md, demo/m.md" in refs
+             and any(x.startswith(f"{TOOLS.parent.name}/ASIS/svc/README.md:4 ") for x in refs), f"ссылки на задачу: {refs}")
+        try:
+            drop(repo, "demo", force=True)
+            bad.append("drop удалил задачу, на которую ссылаются")
+        except Fail as e:
+            want("--ignore-links" in str(e) and "README.md:3" in str(e), f"drop при ссылках: {e}")
+        want(promt.exists() and (folder / "demo").is_dir(), "drop при ссылках всё-таки удалил файлы")
         write(promt, promt.read_text(encoding="utf-8") + "\nправка\n")
         try:
             drop(repo, "demo")
             bad.append("drop потерял незакоммиченную правку")
         except Fail as e:
             want("--force" in str(e), f"drop: {e}")
-        drop(repo, "demo", force=True)
+        gone = drop(repo, "demo", force=True, ignore_links=True)
+        want("остались битые ссылки (3):" in gone, f"drop --ignore-links не назвал оставшиеся ссылки: {gone}")
         want("CLAUDE.md" not in subprocess.run(["git", "diff", "--name-only"], cwd=repo, capture_output=True, text=True).stdout, "drop оставил список вне индекса")
         want(not promt.exists() and not (folder / "demo").exists(), "drop оставил файлы")
         want("demo" not in [x["theme"] for x in read_list(folder)[1]], "drop оставил раздел")
@@ -495,6 +557,7 @@ def main() -> int:
     ap.add_argument("args", nargs="*")
     ap.add_argument("--tobe", metavar="РОДИТЕЛЬ")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--ignore-links", action="store_true")
     ap.add_argument("--repo", type=Path, default=TOOLS.parents[1])
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
@@ -516,7 +579,7 @@ def main() -> int:
         elif a.command == "take":
             print("\n".join(take(repo, a.args[0], a.args[1])))
         elif a.command == "drop":
-            print("\n".join(drop(repo, a.args[0], a.force)))
+            print("\n".join(drop(repo, a.args[0], a.force, a.ignore_links)))
         else:
             errors, warnings = check(repo, a.args[0] if a.args else None)
             for x in errors:

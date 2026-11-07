@@ -30,7 +30,8 @@
                                                (ограничители — тоже); только правки задач блока
   python <карта>/tools/map.py code --relocate   ссылки «Код:» правок «как будет» — по запомненному тексту строки: блок
                                                переписал код прежнего — номер переходит на строку с тем же текстом;
-                                               не нашлась — «вручную». Звать после переноса каждого блока
+                                               не нашлась, их несколько или на номер претендует другая ссылка —
+                                               «вручную» с текстом «было» и кандидатами. Звать после переноса каждого блока
   python <карта>/tools/map.py gone <номер> <решения> <md>[#<раздел>[|<раздел>…]]   «уходит» блоком: нет копии —
                                                сделать её; разделы (якорь или заголовок, с подразделами) — подряд,
                                                одним блоком; без разделов — весь файл; решения — d-… через
@@ -60,7 +61,8 @@
   python <карта>/tools/map.py close [--rename <старое> <новое> [--also <старое>=<новое>]…]   закрытие одним
                                                проходом: apply, переименование сервиса, факты задетых сервисов без
                                                тестов, relocate, сверка переноса ссылок по диффу кода (номер по
-                                               диффу ставит сам; переписанную строку — «вручную по диффу» со всеми
+                                               диффу ставит сам, если текст там совпал с запомненным; иначе и
+                                               переписанную строку — «вручную по диффу» с «было», кандидатами и всеми
                                                md; один раз — отметка TOBE/.diffchecked, повтор только напоминает
                                                непоправленное), done.py — в ответ только то, что править руками;
                                                после правок — снова close
@@ -98,6 +100,7 @@ import yaml
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import anchors  # noqa: E402
 import backlog  # noqa: E402
+import relocate  # noqa: E402
 import tobe_checks  # noqa: E402
 from mapmodel import (  # noqa: E402
     path_order,
@@ -407,56 +410,57 @@ def _code_one(root: Path, lines: anchors.Lines, remembered: dict[str, str], targ
 
 def code_relocate(root: Path) -> list[str]:
     """Ссылки «Код:» правок «как будет» — по запомненному тексту (TOBE/.anchors.json): следующий блок переписал код
-    прежнего, номер сдвинулся. Текст на месте совпадает с запомненным — ссылка верна; нет — та же строка в нынешнем
-    файле, из нескольких ближайшая к прежнему номеру, запомненный текст переходит к новому номеру; не нашлась —
-    «вручную». Только строки «Код:» внутри правок «новое» и «меняется» (вне правок — «как есть», его переносит
-    закрытие). Повтор безопасен."""
+    прежнего, номер сдвинулся. Текст на месте совпадает с запомненным — ссылка верна; нет — новый номер считает
+    relocate.solve: сначала собраны все ссылки и их запомненные тексты, потом номера (однажды соседние :650 и :654 при
+    сдвиге +4 обе стали :654: вторую «нашли» по тексту, который этот же проход записал первой). Кандидат один или один
+    на сдвиге соседей — номер переходит, запомненный текст за ним; нет текста, кандидатов несколько или на номер
+    претендует другая ссылка — «вручную» с текстом «было» и кандидатами, номер не трогается. Только строки «Код:»
+    внутри правок «новое» и «меняется» (вне правок — «как есть», его переносит закрытие). Повтор безопасен."""
     if not (root / "TOBE" / "README.md").is_file():
         raise Fail("изменения нет: обложки TOBE/README.md нет")
     lines = anchors.Lines(root.parent)
-    remembered = anchors.load(root, "TOBE")
-    moved, manual, files = [], [], 0
+    was = anchors.load(root, "TOBE")  # запомненное до переноса — только читается
+    raws: dict[Path, list[str]] = {}
+    found: list[tuple[Path, str, int, str | None, list[tuple[str, str]]]] = []  # (файл, md, строка, раздел, ссылки)
     for p in sorted((root / "TOBE").rglob("*.md"), key=path_order):
         rel = p.relative_to(root).as_posix()
         struct = read_md(p)
-        raw = p.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n")
-        dirty = False
+        raw = raws[p] = p.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n")
         for s, e in file_spans(rel, struct):
             title = None
             for k in range(s, min(e, len(raw))):
                 if raw[k].startswith("#"):
                     title = raw[k].lstrip("#").strip()
-                if not raw[k].startswith("Код:"):
-                    continue
-                refs = CODE_LINE_REF_RE.findall(raw[k])
-                want = []
-                for path, n in refs:
-                    key, num = f"{path}:{n}", int(n)
-                    text = remembered.get(key)
-                    if text is None or anchors.stored(lines.text(path, num) or "") == text:
-                        want.append(key)
-                        continue
-                    code_lines = lines.get(path) or []
-                    hits = [x + 1 for x, ln in enumerate(code_lines) if text and anchors.stored(ln.strip()) == text]
-                    if not hits:
-                        manual.append(f"вручную: {rel}:{k + 1} «{title}»: {key} «{text[:70]}» — такой строки в файле нет")
-                        want.append(key)
-                        continue
-                    to = min(hits, key=lambda x: abs(x - num))
-                    remembered[f"{path}:{to}"] = text
-                    moved.append(f"перенесено: {rel}:{k + 1} «{title}»: {key} → :{to}")
-                    want.append(f"{path}:{to}")
-                if want != [f"{f}:{n}" for f, n in refs]:
-                    it = iter(want)
-                    raw[k] = CODE_LINE_REF_RE.sub(lambda _: f"`{next(it)}`", raw[k])
-                    dirty = True
-        if dirty:
-            p.write_text("\n".join(raw), encoding="utf-8", newline="\n")
-            files += 1
-    if moved:
-        (root / "TOBE" / ".anchors.json").write_text(anchors.dump(remembered), encoding="utf-8", newline="\n")
+                if raw[k].startswith("Код:"):
+                    found.append((p, rel, k, title, CODE_LINE_REF_RE.findall(raw[k])))
+    todo, stay = {}, set()
+    for key in {f"{f}:{n}" for *_, refs in found for f, n in refs}:
+        path, _, n = key.rpartition(":")
+        if key not in was or anchors.stored(lines.text(path, int(n)) or "") == was[key]:
+            stay.add(key)
+        else:
+            todo[key] = was[key]
+    moves, hints = relocate.solve(lines, todo, stay)
+    moved, manual, dirty = [], [], set()
+    for p, rel, k, title, refs in found:
+        for f, n in refs:
+            key = f"{f}:{n}"
+            if key in moves:
+                moved.append(f"перенесено: {rel}:{k + 1} «{title}»: {key} → :{moves[key]}")
+            elif key in hints:
+                manual.append(f"вручную: {rel}:{k + 1} «{title}»: {key} «{todo[key][:70]}» — {hints[key]}")
+        if any(f"{f}:{n}" in moves for f, n in refs):
+            it = iter(f"{f}:{moves.get(f'{f}:{n}', n)}" for f, n in refs)
+            raws[p][k] = CODE_LINE_REF_RE.sub(lambda _: f"`{next(it)}`", raws[p][k])
+            dirty.add(p)
+    for p in dirty:
+        p.write_text("\n".join(raws[p]), encoding="utf-8", newline="\n")
+    if moves:
+        kept = {k: v for k, v in was.items() if k not in moves}
+        kept.update({f"{k.rpartition(':')[0]}:{to}": was[k] for k, to in moves.items()})
+        (root / "TOBE" / ".anchors.json").write_text(anchors.dump(kept), encoding="utf-8", newline="\n")
     return moved + manual + [f"перенос ссылок «как будет»: перенесено {len(moved)}, вручную {len(manual)}, "
-                             f"файлов изменено {files}"]
+                             f"файлов изменено {len(dirty)}"]
 
 
 def code_items(text: str) -> list[tuple[str, list[str]]]:
@@ -756,8 +760,7 @@ def diff_left(root: Path, mark: dict) -> list[str]:
         secs = code_sections(p.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n"))
         if any(f"{f}:{n}" == ref for _, refs in secs.get(head, []) for f, n in refs):
             left.setdefault(ref, ([], hint))[0].append(f"{rel} {(head or '')[:40]}")
-    out = [f"вручную по диффу: {k} — строку переписали, {hint}; где: {'; '.join(where)}"
-           for k, (where, hint) in sorted(left.items())]
+    out = [f"вручную по диффу: {k} — {hint}; где: {'; '.join(where)}" for k, (where, hint) in sorted(left.items())]
     return out + [f"по диффу: сверено прошлым close от {mark.get('base', '?')[:9]} (TOBE/{DIFFCHECKED}) — повтор не "
                   f"сдвигает; не поправлено вручную {len(left)} из {len({m[2] for m in mark.get('manual', [])})}"]
 
@@ -784,8 +787,11 @@ def diff_check(root: Path) -> list[str]:
     запомненным для новой). Здесь: раздел «как есть» до изменения (коммит до слияния PR) против раздела после
     переноса и relocate —
     у каждой ссылки старая строка по диффу кода от коммита до изменения переходит в новую; не совпало — номер по
-    диффу; строку переписали — где на её месте новый код и все md с этой ссылкой; совпало — запомненный текст ключа
-    по нынешней строке (снимает ложное «строка изменилась» у ключа, который правка запомнила с другим текстом).
+    диффу, но только если текст строки по нему совпал с запомненным (до изменения или нынешним), иначе — «вручную»;
+    строку переписали — «вручную»: что на её месте, текст «было», кандидаты и все md с этой ссылкой; совпало —
+    запомненный текст ключа по нынешней строке (снимает ложное «строка изменилась» у ключа, который правка запомнила
+    с другим текстом). Ссылку, которую relocate уже поставил туда, куда дифф переводит строку до изменения, сверка не
+    сдвигает второй раз, даже если её номер — прежний номер соседней ссылки.
     Разделы, где «Код:» стоит внутри блока правки, не сверяются: ссылки там писал блок, по другому коду.
     Сверка — один раз: отметка TOBE/.diffchecked с «вручную»; повтор — diff_left."""
     root = root.resolve()
@@ -832,8 +838,38 @@ def diff_check(root: Path) -> list[str]:
             elif line.startswith("Код:") and any(s < i < e for s, e, _ in ranges):
                 skip.add((asis_rel, head))
 
+    base_mem: dict[str, dict[str, str]] = {}
+
+    def remembered(folder: str) -> dict[str, str]:
+        """Запомненные строки папки на коммите до изменения: apply и relocate их ещё не переписали."""
+        if folder not in base_mem:
+            got = git("show", f"{base}:{(root / folder / '.anchors.json').relative_to(repo).as_posix()}")
+            try:
+                base_mem[folder] = json.loads(got) if got.strip() else {}
+            except json.JSONDecodeError:
+                base_mem[folder] = {}
+        return base_mem[folder]
+
+    def unsure(folder: str, key: str, now_mem: dict[str, str], to: int | None) -> str | None:
+        """Почему номер по диффу не годится (None — годится): у переписанной строки — что на её месте, у сдвинутой —
+        текст по новому номеру не совпал с запомненным (до изменения или нынешним); с текстом «было» и кандидатами."""
+        path, _, num = key.rpartition(":")
+        n = int(num)
+        _, ops = mapping(path)
+        code_was = before[path][n - 1].strip() if 0 < n <= len(before[path]) else None
+        was = remembered(folder).get(key) or (anchors.stored(code_was) if code_was is not None else "")
+        cands = anchors.find_moved(lines, path, was, n)[:5]
+        tail = f"было «{was[:60]}»; " + (f"кандидаты {', '.join(f':{c}' for c in cands)}" if cands else "кандидатов нет")
+        if to is None:
+            rewritten = code_was is not None and lines.text(path, n) != code_was
+            return f"строку переписали, {spot(ops, n)}; {tail}" if rewritten else None
+        now = lines.text(path, to) or ""
+        if anchors.stored(now) in {was, now_mem.get(key)}:
+            return None
+        return f"по диффу :{to}, но там другой текст — «{now[:60]}»; {tail}"
+
     fixed: list[str] = []
-    manual: dict[str, tuple[list[tuple[str, str]], str]] = {}  # ссылка → ((md, раздел)…, что на месте строки в коде)
+    manual: dict[str, tuple[list[tuple[str, str]], str]] = {}  # ссылка → ((md, раздел)…, почему, «было», кандидаты)
     verified: dict[str, set[str]] = {}  # папка .anchors.json → ключи, подтверждённые диффом
     for p in sorted((root / "ASIS").rglob("*.md"), key=path_order):
         rel = p.relative_to(root).as_posix()
@@ -842,29 +878,51 @@ def diff_check(root: Path) -> list[str]:
         old = git("show", f"{base}:{p.relative_to(repo).as_posix()}")
         if not old:
             continue
+        folder = anchors.owner_dir(rel)
+        now_mem = anchors.load(root, folder)
         new_lines = p.read_text(encoding="utf-8").replace("\r\n", "\n").split("\n")
         old_secs, new_secs, dirty = code_sections(old.replace("\r\n", "\n").split("\n")), code_sections(new_lines), False
         for head in old_secs.keys() & new_secs.keys():
             if (rel, head) in skip:
                 continue
-            # Кандидат на перенос — ссылка, которая стоит в разделе тем же путём и номером, что и до изменения: её
-            # не трогали. Новые и нарочно переставленные пишущим не сверяются по позиции (однажды позиционное
+            # Каждая ссылка раздела до изменения сопоставляется не больше чем с одной нынешней:
+            # — тот же номер, и дифф строку не сдвинул — подтверждена;
+            # — номер там, куда дифф перевёл строку другой ссылки до изменения, и запомненный текст ключа совпал с
+            #   кодом — её уже перенёс relocate, не трогать (однажды :43 → :46, а сверка сдвинула :46 ещё раз, на :51,
+            #   приняв её за соседнюю ссылку, стоявшую до изменения на :46);
+            # — тот же номер, дифф сдвинул — номер по диффу, если текст там совпал с запомненным; нет — «вручную».
+            # Остальные — новые и нарочно переставленные пишущим, по позиции не сверяются (однажды позиционное
             # сопоставление переставило поставленную ссылку на соседнюю) — их проверяет живая проверка.
-            untouched = {(f, n) for _, a in old_secs[head] for f, n in a}
+            olds = [(f, int(n)) for _, a in old_secs[head] for f, n in a]
+            free = [True] * len(olds)
+
+            def moved_to(i: int) -> int | None:
+                f, n = olds[i]
+                return mapping(f)[0].get(n) if f in changed else n
+
             for li, b in new_secs[head]:
                 want = []
                 for f1, n1 in b:
-                    num, f0, n0 = n1, f1, n1
-                    if (f1, n1) in untouched and f0 in changed:
-                        eq, ops = mapping(f0)
-                        to = eq.get(int(n0))
-                        if to is not None and to != int(n1):
-                            num = str(to)
-                            fixed.append(f"по диффу: {rel} {head[:50]}: {f1}:{n1} → :{to}")
+                    key, n, num = f"{f1}:{n1}", int(n1), n1
+                    mine = [i for i, (f, _) in enumerate(olds) if f == f1 and free[i]]
+                    same = next((i for i in mine if olds[i][1] == n), None)
+                    here = anchors.stored(lines.text(f1, n) or "")
+                    done = next((i for i in mine if moved_to(i) == n and now_mem.get(key) == here), None)
+                    if same is not None and moved_to(same) == n:
+                        free[same] = False
+                        if f1 in changed:
+                            verified.setdefault(folder, set()).add(key)
+                    elif done is not None:
+                        free[done] = False
+                    elif same is not None:
+                        free[same] = False
+                        to = moved_to(same)
+                        why = unsure(folder, key, now_mem, to)
+                        if why:
+                            manual.setdefault(key, ([], why))[0].append((rel, head))
                         elif to is not None:
-                            verified.setdefault(anchors.owner_dir(rel), set()).add(f"{f1}:{n1}")
-                        elif 0 < int(n0) <= len(before[f0]) and lines.text(f1, int(n1)) != before[f0][int(n0) - 1].strip():
-                            manual.setdefault(f"{f1}:{n1}", ([], spot(ops, int(n0))))[0].append((rel, head))
+                            num = str(to)
+                            fixed.append(f"по диффу: {rel} {head[:50]}: {key} → :{to}")
                     want.append(f"{f1}:{num}")
                 if [f"{f}:{n}" for f, n in b] != want:
                     it = iter(want)
@@ -886,8 +944,8 @@ def diff_check(root: Path) -> list[str]:
     mark.write_text(json.dumps({"base": base, "manual": [[rel, head, k, hint] for k, (where, hint) in manual.items()
                                                          for rel, head in where]}, ensure_ascii=False, indent=1),
                     encoding="utf-8", newline="\n")
-    out = fixed + [f"вручную по диффу: {k} — строку переписали, {hint}; где: "
-                   + "; ".join(f"{rel} {head[:40]}" for rel, head in where) for k, (where, hint) in sorted(manual.items())]
+    out = fixed + [f"вручную по диффу: {k} — {hint}; где: " + "; ".join(f"{rel} {head[:40]}" for rel, head in where)
+                   for k, (where, hint) in sorted(manual.items())]
     return out + [f"по диффу от {base[:9]}: поправлено {len(fixed)}, вручную {len(manual)}, "
                   f"запомненный текст обновлён у {accepted}"]
 
